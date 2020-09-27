@@ -6,8 +6,10 @@
    See hash.h for basic information. */
 
 #include "hash.h"
-#include "../debug.h"
-#include "threads/malloc.h"
+#include <assert.h>	// Instead of 	#include "../debug.h"
+#include <stdlib.h>	//		#include "threads/malloc.h"
+
+#define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 
 #define list_elem_to_hash_elem(LIST_ELEM)                       \
         list_entry(LIST_ELEM, struct hash_elem, list_elem)
