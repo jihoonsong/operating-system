@@ -1,13 +1,16 @@
 #include "bitmap.h"
-#include <debug.h>
-#include <limits.h>
-#include <round.h>
+#include <assert.h>	// Instead of	#include <debug.h>
+#include "limits.h"	// 		#include <limits.h>
+#include "round.h"	// 		#include <round.h>
 #include <stdio.h>
-#include "threads/malloc.h"
+#include <stdlib.h>	// 		#include "threads/malloc.h":malloc
 #ifdef FILESYS
 #include "filesys/file.h"
 #endif
-
+
+#include "hex_dump.h"	// 'hex_dump' : defined in pintos/src/lib/stdio.c
+#define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
+
 /* Element type.
 
    This must be an unsigned integer type at least as wide as int.
@@ -71,10 +74,10 @@ last_mask (const struct bitmap *b)
 
 /* Creation and destruction. */
 
-/* Creates and returns a pointer to a newly allocated bitmap with room for
-   BIT_CNT (or more) bits.  Returns a null pointer if memory allocation fails.
-   The caller is responsible for freeing the bitmap, with bitmap_destroy(),
-   when it is no longer needed. */
+/* Initializes B to be a bitmap of BIT_CNT bits
+   and sets all of its bits to false.
+   Returns true if success, false if memory allocation
+   failed. */
 struct bitmap *
 bitmap_create (size_t bit_cnt) 
 {
@@ -97,7 +100,8 @@ bitmap_create (size_t bit_cnt)
    BLOCK_SIZE bytes of storage preallocated at BLOCK.
    BLOCK_SIZE must be at least bitmap_needed_bytes(BIT_CNT). */
 struct bitmap *
-bitmap_create_in_buf (size_t bit_cnt, void *block, size_t block_size UNUSED)
+bitmap_create_in_buf (size_t bit_cnt, void *block, size_t block_size )
+	// Remove KERNEL MACRO 'UNUSED')
 {
   struct bitmap *b = block;
   
@@ -118,7 +122,8 @@ bitmap_buf_size (size_t bit_cnt)
 }
 
 /* Destroys bitmap B, freeing its storage.
-   Not for use on bitmaps created by bitmap_create_in_buf(). */
+   Not for use on bitmaps created by
+   bitmap_create_preallocated(). */
 void
 bitmap_destroy (struct bitmap *b) 
 {
@@ -162,7 +167,7 @@ bitmap_mark (struct bitmap *b, size_t bit_idx)
   /* This is equivalent to `b->bits[idx] |= mask' except that it
      is guaranteed to be atomic on a uniprocessor machine.  See
      the description of the OR instruction in [IA32-v2b]. */
-  asm ("orl %1, %0" : "=m" (b->bits[idx]) : "r" (mask) : "cc");
+  asm ("orl %k1, %k0" : "=m" (b->bits[idx]) : "r" (mask) : "cc");
 }
 
 /* Atomically sets the bit numbered BIT_IDX in B to false. */
@@ -175,7 +180,7 @@ bitmap_reset (struct bitmap *b, size_t bit_idx)
   /* This is equivalent to `b->bits[idx] &= ~mask' except that it
      is guaranteed to be atomic on a uniprocessor machine.  See
      the description of the AND instruction in [IA32-v2a]. */
-  asm ("andl %1, %0" : "=m" (b->bits[idx]) : "r" (~mask) : "cc");
+  asm ("andl %k1, %k0" : "=m" (b->bits[idx]) : "r" (~mask) : "cc");
 }
 
 /* Atomically toggles the bit numbered IDX in B;
@@ -190,7 +195,7 @@ bitmap_flip (struct bitmap *b, size_t bit_idx)
   /* This is equivalent to `b->bits[idx] ^= mask' except that it
      is guaranteed to be atomic on a uniprocessor machine.  See
      the description of the XOR instruction in [IA32-v2b]. */
-  asm ("xorl %1, %0" : "=m" (b->bits[idx]) : "r" (mask) : "cc");
+  asm ("xorl %k1, %k0" : "=m" (b->bits[idx]) : "r" (mask) : "cc");
 }
 
 /* Returns the value of the bit numbered IDX in B. */
@@ -366,6 +371,6 @@ bitmap_write (const struct bitmap *b, struct file *file)
 void
 bitmap_dump (const struct bitmap *b) 
 {
-  hex_dump (0, b->bits, byte_cnt (b->bit_cnt), false);
+  hex_dump (0, b->bits, byte_cnt (b->bit_cnt)/2, false);
 }
 
