@@ -25,6 +25,15 @@ struct command
 static bool receive_input (char *input);
 static void tokenize (char *input, struct command *command);
 
+/* Returns true if CMD equals to "dumpdata" or "delete", false otherwise. */
+static inline bool
+is_broadcast (const char *cmd)
+{
+  ASSERT (cmd != NULL);
+
+  return strcmp(cmd, "dumpdata") == 0 || strcmp(cmd, "delete") == 0;
+}
+
 /* Returns true if CMD equals "quit", false otherwise. */
 static inline bool
 is_quit (const char *cmd)
@@ -61,6 +70,13 @@ mainloop_launch (void)
 
           if (is_quit (command.cmd))
             break;
+
+          if (is_broadcast (command.cmd))
+            {
+              // TODO: Invoke all handlers.
+              printf ("broadcast\n");
+              continue;
+            }
         }
     }
 }
