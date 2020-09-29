@@ -25,6 +25,15 @@ struct command
 static bool receive_input (char *input);
 static void tokenize (char *input, struct command *command);
 
+/* Returns true if CMD equals "quit", false otherwise. */
+static inline bool
+is_quit (const char *cmd)
+{
+  ASSERT (cmd != NULL);
+
+  return strcmp(cmd, "quit") == 0;
+}
+
 /* Call all initializers that need to be invoked before mainloop begins. */
 void
 mainloop_initialize (void)
@@ -50,10 +59,8 @@ mainloop_launch (void)
         {
           tokenize (input, &command);
 
-          printf ("%s\n", command.cmd);
-          printf ("%d\n", command.argc);
-          for (char **argv = command.argv; *argv; ++argv)
-            printf ("%s\n", *argv);
+          if (is_quit (command.cmd))
+            break;
         }
     }
 }
