@@ -34,6 +34,15 @@ is_quit (const char *cmd)
   return strcmp(cmd, "quit") == 0;
 }
 
+/* Returns true if CMD equals to "dumpdata" or "delete", false otherwise. */
+static inline bool
+is_broadcast (const char *cmd)
+{
+  ASSERT (cmd != NULL);
+
+  return strcmp(cmd, "dumpdata") == 0 || strcmp(cmd, "delete") == 0;
+}
+
 /* Call all initializers that need to be invoked before mainloop begins. */
 void
 mainloop_initialize (void)
@@ -61,6 +70,13 @@ mainloop_launch (void)
 
           if (is_quit (command.cmd))
             break;
+
+          if (is_broadcast (command.cmd))
+            {
+              // TODO: Invoke all handlers.
+              printf ("broadcast\n");
+              continue;
+            }
         }
     }
 }
