@@ -7,6 +7,10 @@
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 #define INPUT_LEN 80
 
+/* Handler. */
+typedef enum handler_type {LIST, HASH, BITMAP,
+                           HANDLER_COUNT, NONE} handler_type;
+typedef void (*handler_ptr) (const char *, const int, const char *[]);
 
 /* The input is tokenized into command and arguments. After tokenizing is
    done, a corresponding handler is designated. */
@@ -19,7 +23,7 @@ struct command
     /* A NULL-terminated list of arguments. */
     char *argv[ARGC_MAX + 1];
     /* A designated handler. */
-    void (*handler)(const char *, const int, const char *[]);
+    handler_type handler;
   };
 
 static bool receive_input (char *input);
