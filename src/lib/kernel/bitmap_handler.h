@@ -2,7 +2,8 @@
 #define __LIB_KERNEL_BITMAP_HANDLER_H
 
 /* Bitmap handler.
-   // TODO: Complete document.
+
+   Bitmap handler is resonsible for using bitmaps.
 */
 
 /* Receives and executes a command. */
