@@ -8,6 +8,20 @@
 
 static bool receive_input (char *input);
 
+/* The input is tokenized into command and arguments. After tokenizing is
+   done, a corresponding handler is designated. */
+struct command
+  {
+    /* A command to be executed. */
+    char *cmd;
+    /* The number of arguments. */
+    int argc;
+    /* A NULL-terminated list of arguments. */
+    char *argv[ARGC_MAX + 1];
+    /* A designated handler. */
+    void (*handler)(const char *, const int, const char *[]);
+  };
+
 /* Call all initializers that need to be invoked before mainloop begins. */
 void
 mainloop_initialize (void)
@@ -25,6 +39,7 @@ void
 mainloop_launch (void)
 {
   char input[INPUT_LEN] = {0,};
+  struct command command = {0,};
 
   while (true)
     {
