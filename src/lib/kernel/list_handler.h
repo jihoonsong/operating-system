@@ -2,7 +2,8 @@
 #define __LIB_KERNEL_LIST_HANDLER_H
 
 /* List handler.
-   // TODO: Complete document.
+
+   List handler is responsible for using doubly linked lists.
 */
 
 /* Receives and executes a command. */
