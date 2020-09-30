@@ -5,4 +5,8 @@
    // TODO: Complete document.
 */
 
+/* Receives and executes a command. */
+void list_handler_invoke (const char *cmd, const int argc,
+                          const char *argv[]);
+
 #endif /* lib/kernel/list_handler.h */
