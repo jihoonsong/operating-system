@@ -2,7 +2,8 @@
 #define __LIB_KERNEL_HASH_HANDLER_H
 
 /* Hash handler.
-   // TODO: Complete document.
+
+   Hash handler is responsible for using hash tables.
 */
 
 /* Receives and executes a command. */
