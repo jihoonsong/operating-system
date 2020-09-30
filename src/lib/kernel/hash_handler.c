@@ -1,6 +1,7 @@
 #include "hash_handler.h"
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdio.h>
+#include <string.h>
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 
@@ -44,12 +45,31 @@ static const struct hash_cmd_table hash_cmd_table[HASH_CMD_COUNT] = \
    {HASH_REPLACE, "hash_replace", execute_hash_replace},
    {HASH_SIZE, "hash_size", execute_hash_size}};
 
-/* TODO: Complete document. */
+/* Executes CMD. */
 void
 hash_handler_invoke (const char *cmd, const int argc,
                      const char *argv[])
 {
-  printf ("hash handler is invoked\n");
+  ASSERT (cmd != NULL);
+
+  hash_cmd_type type = convert_to_hash_cmd_type (cmd);
+  if (type != NONE)
+    hash_cmd_table[type].execute (argc, argv);
+}
+
+/* Converts CMD to its corresponding hash command type.
+   Returns its list command type if conversion succeeds, NONE otherwise. */
+static hash_cmd_type
+convert_to_hash_cmd_type (const char *cmd)
+{
+  ASSERT (cmd != NULL);
+
+  for (int i = 0; i < HASH_CMD_COUNT; ++i)
+    if (strcmp(cmd, hash_cmd_table[i].name) == 0)
+      return hash_cmd_table[i].type;
+
+  printf ("%s: command not found\n", cmd);
+  return NONE;
 }
 
 /* TODO: Complete document. */
