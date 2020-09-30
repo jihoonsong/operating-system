@@ -65,6 +65,11 @@ mainloop_launch (void)
 {
   char input[INPUT_LEN] = {0,};
   struct command command = {0,};
+  handler_ptr handler_ptrs[HANDLER_COUNT] = {NULL,};
+  char *handler_prefixes[HANDLER_COUNT] = {NULL,};
+  char *handler_specifiers[HANDLER_COUNT] = {NULL,};
+
+  initialize_handlers (handler_ptrs, handler_prefixes, handler_specifiers);
 
   while (true)
     {
@@ -83,6 +88,54 @@ mainloop_launch (void)
             }
         }
     }
+}
+
+/* Initialize handlers. */
+static void
+initialize_handlers (handler_ptr *handler_ptrs,
+                     char *handler_prefixes[],
+                     char *handler_specifiers[])
+{
+  ASSERT (handler_ptrs != NULL);
+  ASSERT (handler_prefixes != NULL);
+  ASSERT (handler_specifiers != NULL);
+
+  initialize_handler_ptrs (handler_ptrs);
+  initialize_handler_prefixes (handler_prefixes);
+  initialize_handler_specifiers (handler_specifiers);
+}
+
+/* Initialize function pointers to handler. */
+static void
+initialize_handler_ptrs (handler_ptr *handler_ptrs)
+{
+  ASSERT (handler_ptrs);
+
+  handler_ptrs[LIST] = list_handler_invoke;
+  handler_ptrs[HASH] = hash_handler_invoke;
+  handler_ptrs[BITMAP] = bitmap_handler_invoke;
+}
+
+/* Initialize handler prefixes. */
+static void
+initialize_handler_prefixes (char *handler_prefixes[])
+{
+  ASSERT (handler_prefixes);
+
+  handler_prefixes[LIST] = "list_";
+  handler_prefixes[HASH] = "hash_";
+  handler_prefixes[BITMAP] = "bitmap_";
+}
+
+/* Initialize handler specifiers. */
+static void
+initialize_handler_specifiers (char *handler_specifiers[])
+{
+  ASSERT (handler_specifiers);
+
+  handler_specifiers[LIST] = "list";
+  handler_specifiers[HASH] = "hashtable";
+  handler_specifiers[BITMAP] = "bitmap";
 }
 
 /* Reads stream data from stdin and stores it in INPUT.
