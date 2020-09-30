@@ -30,6 +30,11 @@ struct command
     handler_type handler;
   };
 
+static handler_type convert_to_handler_type (const char *argv,
+                                             const char *handler_specifiers[]);
+static bool designate_handler (struct command *command,
+                               char *handler_prefixes[],
+                               char *handler_specifiers[]);
 static void initialize_handlers (handler_ptr *handler_ptrs,
                                  char *handler_prefixes[],
                                  char *handler_specifiers[]);
@@ -96,8 +101,85 @@ mainloop_launch (void)
               printf ("broadcast\n");
               continue;
             }
+
+          if (designate_handler (&command, handler_prefixes,
+                                 handler_specifiers))
+              printf ("invoke handler\n");
         }
     }
+}
+
+/* Convert ARGV to the type of its designated handler. */
+static handler_type
+convert_to_handler_type (const char *argv,
+                         const char *handler_specifiers[])
+{
+  ASSERT (handler_specifiers != NULL);
+
+  if (argv == NULL)
+    {
+      printf ("create: missing operand\n");
+      return NONE;
+    }
+
+  if (strcmp (argv, handler_specifiers[LIST]) == 0)
+    {
+      return LIST;
+    }
+  if (strcmp (argv, handler_specifiers[HASH]) == 0)
+    {
+      return HASH;
+    }
+  if (strcmp (argv, handler_specifiers[BITMAP]) == 0)
+    {
+      return BITMAP;
+    }
+
+  printf ("create: invalid operand '%s'\n", argv);
+  return NONE;
+}
+
+/* Designate handler corresponding to the COMMAND->CMD.
+   Returns true if handler designation succeeds, false otherwise. */
+static bool
+designate_handler (struct command *command,
+                   char *handler_prefixes[],
+                   char *handler_specifiers[])
+{
+  ASSERT (command != NULL);
+  ASSERT (handler_prefixes != NULL);
+  ASSERT (handler_specifiers != NULL);
+
+  if (strcmp (command->cmd, "create") == 0)
+    {
+      command->handler = \
+        convert_to_handler_type((const char *) command->argv[0],
+                                (const char **) handler_specifiers);
+      return command->handler != NONE;
+    }
+
+  if (strncmp (command->cmd, handler_prefixes[LIST],
+               strlen(handler_prefixes[LIST])) == 0)
+    {
+      command->handler = LIST;
+    }
+  else if (strncmp (command->cmd, handler_prefixes[HASH],
+                    strlen(handler_prefixes[LIST])) == 0)
+    {
+      command->handler = HASH;
+    }
+  else if (strncmp (command->cmd, handler_prefixes[BITMAP],
+                    strlen(handler_prefixes[BITMAP])) == 0)
+    {
+      command->handler = BITMAP;
+    }
+  else
+    {
+      printf ("%s: command not found\n", command->cmd);
+      command->handler = NONE;
+    }
+
+  return command->handler != NONE;
 }
 
 /* Initialize handlers. */
