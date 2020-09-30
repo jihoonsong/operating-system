@@ -1,6 +1,7 @@
 #include "bitmap_handler.h"
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdio.h>
+#include <string.h>
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 
@@ -54,12 +55,31 @@ static const struct bitmap_cmd_table bitmap_cmd_table[BITMAP_CMD_COUNT] = \
    {BITMAP_SIZE, "bitmap_size", execute_bitmap_size},
    {BITMAP_TEST, "bitmap_test", execute_bitmap_test}};
 
-/* TODO: Complete document. */
+/* Executes CMD. */
 void
 bitmap_handler_invoke (const char *cmd, const int argc,
                        const char *argv[])
 {
-  printf ("bitmap handler is invoked\n");
+  ASSERT (cmd != NULL);
+
+  bitmap_cmd_type type = convert_to_bitmap_cmd_type(cmd);
+  if (type != NONE)
+    bitmap_cmd_table[type].execute (argc, argv);
+}
+
+/* Converts CMD to its corresponding bitmap command type.
+   Returns its list command type if conversion succeeds, NONE otherwise. */
+static bitmap_cmd_type
+convert_to_bitmap_cmd_type (const char *cmd)
+{
+  ASSERT (cmd != NULL);
+
+  for (int i = 0; i < BITMAP_CMD_COUNT; ++i)
+    if (strcmp(cmd, bitmap_cmd_table[i].name) == 0)
+      return bitmap_cmd_table[i].type;
+
+  printf ("%s: command not found\n", cmd);
+  return NONE;
 }
 
 /* TODO: Complete document. */
