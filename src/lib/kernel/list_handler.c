@@ -1,6 +1,7 @@
 #include "list_handler.h"
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdio.h>
+#include <string.h>
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 
@@ -20,6 +21,7 @@ struct list_cmd_table
     const list_cmd_ptr execute;
   };
 
+static list_cmd_type convert_to_list_cmd_type (const char *cmd);
 static void execute_create (const int argc, const char *argv[]);
 static void execute_delete (const int argc, const char *argv[]);
 static void execute_dumpdata (const int argc, const char *argv[]);
@@ -68,11 +70,31 @@ static const struct list_cmd_table list_cmd_table[LIST_CMD_COUNT] = \
    {LIST_SWAP, "list_swap", execute_list_swap},
    {LIST_UNIQUE, "list_unique", execute_list_unique}};
 
-/* TODO: Complete document. */
+/* Executes CMD. */
 void
 list_handler_invoke (const char *cmd, const int argc,
                      const char *argv[])
 {
+  ASSERT (cmd != NULL);
+
+  list_cmd_type type = convert_to_list_cmd_type (cmd);
+  if (type != NONE)
+    list_cmd_table[type].execute (argc, argv);
+}
+
+/* Converts CMD to its corresponding list command type.
+   Returns its list command type if conversion succeeds, NONE otherwise. */
+static list_cmd_type
+convert_to_list_cmd_type (const char *cmd)
+{
+  ASSERT (cmd != NULL);
+
+  for (int i = 0; i < LIST_CMD_COUNT; ++i)
+    if (strcmp(cmd, list_cmd_table[i].name) == 0)
+      return list_cmd_table[i].type;
+
+  printf ("%s: command not found\n", cmd);
+  return NONE;
 }
 
 /* TODO: Complete document. */
