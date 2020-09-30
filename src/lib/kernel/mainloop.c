@@ -26,6 +26,8 @@ struct command
     handler_type handler;
   };
 
+static void broadcast_to_handlers (const struct command *command,
+                                   const handler_ptr *handler_ptrs);
 static handler_type convert_to_handler_type (const char *argv,
                                              const char *handler_specifiers[]);
 static bool designate_handler (struct command *command,
@@ -37,6 +39,8 @@ static void initialize_handlers (handler_ptr *handler_ptrs,
 static void initialize_handler_ptrs (handler_ptr *handler_ptrs);
 static void initialize_handler_prefixes (char *handler_prefixes[]);
 static void initialize_handler_specifiers (char *handler_specifiers[]);
+static void invoke_handler (const struct command *command,
+                            const handler_ptr *handler_ptrs);
 static bool receive_input (char *input);
 static void tokenize (char *input, struct command *command);
 
@@ -93,16 +97,29 @@ mainloop_launch (void)
 
           if (is_broadcast (command.cmd))
             {
-              // TODO: Invoke all handlers.
-              printf ("broadcast\n");
+              broadcast_to_handlers (&command, handler_ptrs);
               continue;
             }
 
           if (designate_handler (&command, handler_prefixes,
                                  handler_specifiers))
-              printf ("invoke handler\n");
+              invoke_handler (&command, handler_ptrs);
         }
     }
+}
+
+/* Broadcast to all handlers. */
+static void
+broadcast_to_handlers (const struct command *command,
+                       const handler_ptr *handler_ptrs)
+{
+  ASSERT (command != NULL);
+  ASSERT (handler_ptrs != NULL);
+
+  for (int i = 0; i < HANDLER_COUNT; ++i)
+    handler_ptrs[i]( (const char *)command->cmd,
+                     (const int)command->argc,
+                     (const char **)command->argv);
 }
 
 /* Convert ARGV to the type of its designated handler. */
@@ -224,6 +241,20 @@ initialize_handler_specifiers (char *handler_specifiers[])
   handler_specifiers[LIST] = "list";
   handler_specifiers[HASH] = "hashtable";
   handler_specifiers[BITMAP] = "bitmap";
+}
+
+/* Invoke the designated handler. */
+static void
+invoke_handler (const struct command *command,
+                const handler_ptr *handler_ptrs)
+{
+  ASSERT (command != NULL);
+  ASSERT (command->handler != NONE);
+  ASSERT (handler_ptrs != NULL);
+
+  handler_ptrs[command->handler] ((const char *)command->cmd,
+                                  (const int)command->argc,
+                                  (const char **)command->argv);
 }
 
 /* Reads stream data from stdin and stores it in INPUT.
