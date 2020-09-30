@@ -2,11 +2,11 @@
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
+#define ARGC_MAX 4
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 #define INPUT_LEN 80
-
-static bool receive_input (char *input);
 
 /* The input is tokenized into command and arguments. After tokenizing is
    done, a corresponding handler is designated. */
@@ -21,6 +21,9 @@ struct command
     /* A designated handler. */
     void (*handler)(const char *, const int, const char *[]);
   };
+
+static bool receive_input (char *input);
+static void tokenize (char *input, struct command *command);
 
 /* Call all initializers that need to be invoked before mainloop begins. */
 void
@@ -45,7 +48,12 @@ mainloop_launch (void)
     {
       if (receive_input (input))
         {
-          printf ("%s", input);
+          tokenize (input, &command);
+
+          printf ("%s\n", command.cmd);
+          printf ("%d\n", command.argc);
+          for (char **argv = command.argv; *argv; ++argv)
+            printf ("%s\n", *argv);
         }
     }
 }
@@ -58,4 +66,24 @@ receive_input (char *input)
   ASSERT (input != NULL);
 
   return fgets (input, INPUT_LEN, stdin) != NULL;
+}
+
+/* Tokenize input into command and arguments. */
+static void
+tokenize (char *input, struct command *command)
+{
+  ASSERT (input != NULL);
+  ASSERT (command != NULL);
+
+  const char delim[] = " \t";
+  char *save_ptr = NULL;
+
+  input[strlen(input) - 1] = '\0';
+  command->cmd = strtok_r (input, delim, &save_ptr);
+  for (command->argc = 0; command->argc < ARGC_MAX; ++command->argc)
+    {
+      command->argv[command->argc] = strtok_r (NULL, delim, &save_ptr);
+      if (command->argv[command->argc] == NULL)
+        break;
+    }
 }
