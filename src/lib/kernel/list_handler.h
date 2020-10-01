@@ -6,6 +6,10 @@
    List handler is responsible for using doubly linked lists.
 */
 
+/* Initialization and termination. */
+void list_handler_initialize (void);
+void list_handler_terminate (void);
+
 /* Receives and executes a command. */
 void list_handler_invoke (const char *cmd, const int argc,
                           const char *argv[]);
