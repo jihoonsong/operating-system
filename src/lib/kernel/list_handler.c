@@ -349,11 +349,28 @@ execute_list_insert_ordered (const int argc, const char *argv[])
   list_insert_ordered (&entry->list, &new_item->elem, compare, NULL);
 }
 
-/* TODO: Complete document. */
+/* Prints the biggest data in a list with the name of ARGV[0]. If there is
+   more than one maximum, returns the one that appears earlier in the list.
+   If the the list is empty, prints nothing. */
 static void
 execute_list_max (const int argc, const char *argv[])
 {
-  printf ("execute_list_max\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  struct list_elem *max = list_max (&entry->list, compare, NULL);
+  if (max == list_end (&entry->list))
+    return;
+
+  struct list_item *item = list_entry (max, struct list_item, elem);
+  printf ("%d\n", item->data);
 }
 
 /* TODO: Complete document. */
