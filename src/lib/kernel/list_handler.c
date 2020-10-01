@@ -57,7 +57,12 @@ static struct list_table *get_empty_list_table_entry (void);
 
 /* List item functions. */
 static void delete_list_item (struct list_item *item);
+static struct list_elem *find_list_element_at (struct list *list,
+                                               const int index);
 static struct list_item *new_list_item (const char *arg);
+
+/* Miscellaneous functions. */
+static int convert_to_index (const char *arg);
 
 /* List command table. */
 static const struct list_cmd_table list_cmd_table[LIST_CMD_COUNT] = \
@@ -391,11 +396,26 @@ execute_list_push_front (const int argc, const char *argv[])
   list_push_front (&entry->list, &new_item->elem);
 }
 
-/* TODO: Complete document. */
+/* Removes the ARGV[1]-th list item at the list with a name of ARGV[0]. */
 static void
 execute_list_remove (const int argc, const char *argv[])
 {
-  printf ("execute_list_remove\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  int index = convert_to_index (argv[1]);
+  if (index < 0)
+    return;
+
+  list_remove (find_list_element_at (&entry->list, index));
 }
 
 /* Reverses the order of a list with the name of ARGV[0]. */
@@ -503,6 +523,21 @@ delete_list_item (struct list_item *item)
   free (item);
 }
 
+/* Returns a list element at the INDEX-th position in LIST.
+   If INDEX == list_size (LIST), then LIST->tail will be returned. */
+static struct list_elem *
+find_list_element_at (struct list *list, const int index)
+{
+  ASSERT (list != NULL);
+  ASSERT (index >= 0 && index <= list_size (list));
+
+  struct list_elem *element = list_begin (list);
+  for (int i = 0; i < index && element != list_end (list); ++i)
+      element = list_next (element);
+
+  return element;
+}
+
 /* Allocates memory of list item with the data of ARG, and returns it. */
 static struct list_item *
 new_list_item (const char *arg)
@@ -523,4 +558,27 @@ new_list_item (const char *arg)
   new_item->data = data;
 
   return new_item;
+}
+
+/* Converts ARG from an array of char to a nonnegative decimal.
+   Returns -1 when ARG is not a decimal string. */
+static int
+convert_to_index (const char *arg)
+{
+  ASSERT (arg != NULL);
+
+  char *endptr = NULL;
+  int index = strtol (arg, &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", arg);
+      return -1;
+    }
+  if (index < 0)
+    {
+      printf ("%s: index cannot be negative\n", arg);
+      return -1;
+    }
+
+  return index;
 }
