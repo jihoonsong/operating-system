@@ -47,6 +47,8 @@ static void execute_list_sort (const int argc, const char *argv[]);
 static void execute_list_splice (const int argc, const char *argv[]);
 static void execute_list_swap (const int argc, const char *argv[]);
 static void execute_list_unique (const int argc, const char *argv[]);
+static struct list_table *find_list_table_entry (const char *arg);
+static struct list_table *get_empty_list_table_entry (void);
 
 /* List command table. */
 static const struct list_cmd_table list_cmd_table[LIST_CMD_COUNT] = \
@@ -80,6 +82,17 @@ struct list_table
     struct list list;
   };
 static struct list_table list_table[MAX_LIST_COUNT];
+
+/* Returns true if list table is full, false otherwise. */
+static inline bool
+is_list_table_full (void)
+{
+  for (int i = 0; i < MAX_LIST_COUNT; ++i)
+    if (list_table[i].name[0] == '\0')
+      return false;
+
+  return true;
+}
 
 /* Initializes list table. */
 void
@@ -274,4 +287,30 @@ static void
 execute_list_unique (const int argc, const char *argv[])
 {
   printf ("execute_list_unique\n");
+}
+
+/* Finds a list table entry that has the same name as ARG.
+   Returns a pointer to the list table entry if search succeeds,
+   NULL otherwise. */
+static struct list_table *
+find_list_table_entry (const char *arg)
+{
+  ASSERT (arg != NULL);
+
+  for (int i = 0; i < MAX_LIST_COUNT; ++i)
+    if (strcmp (arg, list_table[i].name) == 0)
+      return &list_table[i];
+
+  return NULL;
+}
+
+/* Returns an empty list table entry, NULL if list table is full. */
+static struct list_table *
+get_empty_list_table_entry (void)
+{
+  for (int i = 0; i < MAX_LIST_COUNT; ++i)
+      if (list_table[i].name[0] == '\0')
+        return &list_table[i];
+
+  return NULL;
 }
