@@ -27,6 +27,8 @@ struct list_cmd_table
   };
 
 /* Execution functions. */
+static bool compare (const struct list_elem *a, const struct list_elem *b,
+                     void *aux);
 static list_cmd_type convert_to_list_cmd_type (const char *cmd);
 static void execute_create (const int argc, const char *argv[]);
 static void execute_delete (const int argc, const char *argv[]);
@@ -139,6 +141,18 @@ list_handler_invoke (const char *cmd, const int argc,
   list_cmd_type type = convert_to_list_cmd_type (cmd);
   if (type != NONE)
     list_cmd_table[type].execute (argc, argv);
+}
+
+/* Compares the value of two list elements A and B, given
+   auxiliary data AUX.  Returns true if A is less than B, or
+   false if A is greater than or equal to B. */
+static bool
+compare (const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+  struct list_item *item_a = list_entry (a, struct list_item, elem);
+  struct list_item *item_b = list_entry (b, struct list_item, elem);
+
+  return item_a->data < item_b->data ? true : false;
 }
 
 /* Converts CMD to its corresponding list command type.
@@ -482,11 +496,21 @@ execute_list_size (const int argc, const char *argv[])
   printf ("%zu\n", list_size (&entry->list));
 }
 
-/* TODO: Complete document. */
+/* Sorts a list with the name of ARGV[0] in nondecreasing order. */
 static void
 execute_list_sort (const int argc, const char *argv[])
 {
-  printf ("execute_list_sort\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  list_sort (&entry->list, compare, NULL);
 }
 
 /* Removes list elements in a list with a name of ARGV[2]
