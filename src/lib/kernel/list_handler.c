@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "list.h"
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
@@ -114,6 +115,8 @@ is_list_table_full (void)
 void
 list_handler_initialize (void)
 {
+  srand ((unsigned int) time (NULL)); // list_shuffle() needs this.
+
   memset (list_table, '\0', sizeof (list_table));
 }
 
@@ -522,11 +525,21 @@ execute_list_reverse (const int argc, const char *argv[])
   list_reverse (&entry->list);
 }
 
-/* TODO: Complete document. */
+/* Shuffles a list with the name of ARGV[0]. */
 static void
 execute_list_shuffle (const int argc, const char *argv[])
 {
-  printf ("execute_list_shuffle\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  list_shuffle (&entry->list);
 }
 
 /* Returns the number of elements in a list with the name of ARGV[0].

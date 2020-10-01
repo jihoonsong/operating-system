@@ -1,5 +1,6 @@
 #include "list.h"
 #include <assert.h>	// Instead of	#include "../debug.h"
+#include <stdlib.h>
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 
 /* Our doubly linked lists have two header elements: the "head"
@@ -342,6 +343,35 @@ list_reverse (struct list *list)
         swap (&e->prev, &e->next);
       swap (&list->head.next, &list->tail.prev);
       swap (&list->head.next->prev, &list->tail.prev->next);
+    }
+}
+
+/* Shuffles LIST. */
+void
+list_shuffle (struct list *list)
+{
+  const int divisor = RAND_MAX / list_size (list);
+
+  struct list_elem *elem[2];
+  int num[2];
+  for (int i = 0; i < 1000000; ++i)
+    {
+      num[0] = rand() / divisor;
+      num[1] = rand() / divisor;
+
+      struct list_elem *e;
+      int pos;
+      for (e = list_begin (list), pos = 0;
+           e != list_end (list); e = list_next (e), ++pos)
+        {
+          if (pos == num[0])
+            elem[0] = e;
+
+          if (pos == num[1])
+            elem[1] = e;
+        }
+
+      list_swap (elem[0], elem[1]);
     }
 }
 
