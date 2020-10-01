@@ -1,10 +1,12 @@
 #include "list_handler.h"
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "list.h"
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
+#define DECIMAL 10
 #define MAX_LIST_COUNT 10
 #define MAX_LIST_NAME 100
 
@@ -24,6 +26,7 @@ struct list_cmd_table
     const list_cmd_ptr execute;
   };
 
+/* Execution functions. */
 static list_cmd_type convert_to_list_cmd_type (const char *cmd);
 static void execute_create (const int argc, const char *argv[]);
 static void execute_delete (const int argc, const char *argv[]);
@@ -47,8 +50,14 @@ static void execute_list_sort (const int argc, const char *argv[]);
 static void execute_list_splice (const int argc, const char *argv[]);
 static void execute_list_swap (const int argc, const char *argv[]);
 static void execute_list_unique (const int argc, const char *argv[]);
+
+/* List table functions. */
 static struct list_table *find_list_table_entry (const char *arg);
 static struct list_table *get_empty_list_table_entry (void);
+
+/* List item functions. */
+static void delete_list_item (struct list_item *item);
+static struct list_item *new_list_item (const char *arg);
 
 /* List command table. */
 static const struct list_cmd_table list_cmd_table[LIST_CMD_COUNT] = \
@@ -331,4 +340,35 @@ get_empty_list_table_entry (void)
         return &list_table[i];
 
   return NULL;
+}
+
+/* Releases memory of ITEM. */
+static void
+delete_list_item (struct list_item *item)
+{
+  ASSERT (item != NULL);
+
+  free (item);
+}
+
+/* Allocates memory of list item with the data of ARG, and returns it. */
+static struct list_item *
+new_list_item (const char *arg)
+{
+  ASSERT (arg != NULL);
+
+  char *endptr = NULL;
+  int data = strtol (arg, &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", arg);
+      return NULL;
+    }
+
+  struct list_item *new_item = malloc (sizeof (*new_item));
+  new_item->elem.prev = NULL;
+  new_item->elem.next = NULL;
+  new_item->data = data;
+
+  return new_item;
 }
