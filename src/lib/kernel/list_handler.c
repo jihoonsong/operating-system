@@ -615,11 +615,37 @@ execute_list_swap (const int argc, const char *argv[])
   printf ("execute_list_swap\n");
 }
 
-/* TODO: Complete document. */
+/* Iterates through a list with the name of ARGV[0] and removes all but
+   the first in each set of adjacent elements that are equal according to
+   COMPARE function. If ARGV[1] is non-null, then the removed elements are
+   appended to a list with the name of ARGV[1]. */
 static void
 execute_list_unique (const int argc, const char *argv[])
 {
-  printf ("execute_list_unique\n");
+  ASSERT (argc == 1 || (argc == 2 && argv[1] != NULL));
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  struct list *duplicates = NULL;
+  if (argv[1] != NULL)
+    {
+      struct list_table *_entry = find_list_table_entry (argv[1]);
+      if (_entry == NULL)
+        {
+          printf("%s: list not found\n", argv[1]);
+          return;
+        }
+
+      duplicates = &_entry->list;
+    }
+
+  list_unique (&entry->list, duplicates, compare, NULL);
 }
 
 /* Finds a list table entry that has the same name as ARG.
