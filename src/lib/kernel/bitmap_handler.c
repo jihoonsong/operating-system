@@ -2,8 +2,11 @@
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdio.h>
 #include <string.h>
+#include "bitmap.h"
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
+#define MAX_BITMAP_COUNT 10
+#define MAX_BITMAP_NAME 100
 
 /* Bitmap command. */
 typedef enum bitmap_cmd_type {CREATE, DELETE, DUMPDATA, BITMAP_ALL,
@@ -55,6 +58,14 @@ static const struct bitmap_cmd_table bitmap_cmd_table[BITMAP_CMD_COUNT] = \
    {BITMAP_SIZE, "bitmap_size", execute_bitmap_size},
    {BITMAP_TEST, "bitmap_test", execute_bitmap_test}};
 
+/* Bitmap table. */
+struct bitmap_table
+  {
+    char name[MAX_BITMAP_NAME];
+    struct bitmap *bitmap;
+  };
+static struct bitmap_table bitmap_table[MAX_BITMAP_COUNT];
+
 /* Initializes bitmap table. */
 void
 bitmap_handler_initialize (void)
@@ -66,6 +77,7 @@ bitmap_handler_initialize (void)
 void
 bitmap_handler_terminate (void)
 {
+  // TODO: Release bitmap_table.
 }
 
 /* Executes CMD. */
