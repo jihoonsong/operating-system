@@ -128,18 +128,36 @@ convert_to_list_cmd_type (const char *cmd)
   ASSERT (cmd != NULL);
 
   for (int i = 0; i < LIST_CMD_COUNT; ++i)
-    if (strcmp(cmd, list_cmd_table[i].name) == 0)
+    if (strcmp (cmd, list_cmd_table[i].name) == 0)
       return list_cmd_table[i].type;
 
   printf ("%s: command not found\n", cmd);
   return NONE;
 }
 
-/* TODO: Complete document. */
+/* Creates a new list with the name of ARGV[1]. */
 static void
 execute_create (const int argc, const char *argv[])
 {
-  printf ("execute_create\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  if (find_list_table_entry (argv[1]) != NULL)
+    {
+      printf ("%s: already exists\n", argv[1]);
+      return;
+    }
+
+  if (is_list_table_full ())
+    {
+      printf ("List table is full\n");
+      return;
+    }
+
+  struct list_table *new_entry = get_empty_list_table_entry ();
+  memcpy (new_entry->name, argv[1], strlen (argv[1]) + 1);
+  list_init (&new_entry->list);
 }
 
 /* TODO: Complete document. */
