@@ -345,6 +345,32 @@ list_reverse (struct list *list)
     }
 }
 
+/* Swaps A and B. */
+void
+list_swap (struct list_elem *a, struct list_elem *b)
+{
+  // Swap pointers of four list elements adjacent to a and b.
+  struct list_elem *a_prev = a->prev;
+  struct list_elem *a_next = a->next;
+  struct list_elem *b_prev = b->prev;
+  struct list_elem *b_next = b->next;
+  if (a_prev != NULL)
+    a_prev->next = b;
+
+  if (a_next != NULL)
+    a_next->prev = b;
+
+  if (b_prev != NULL)
+    b_prev->next = a;
+
+  if (b_next != NULL)
+    b_next->prev = a;
+
+  // Swap pointers of a and b.
+  swap(&a->prev, &b->prev);
+  swap(&a->next, &b->next);
+}
+
 /* Returns true only if the list elements A through B (exclusive)
    are in order according to LESS given auxiliary data AUX. */
 static bool

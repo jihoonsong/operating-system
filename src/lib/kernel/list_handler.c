@@ -608,11 +608,33 @@ execute_list_splice (const int argc, const char *argv[])
                find_list_element_at (&from_entry->list, splice_end));
 }
 
-/* TODO: Complete document. */
+/* Swaps list elements at the ARGV[1]-th position and the ARGV[2]-th position
+   in a list with the name of ARGV[0]. */
 static void
 execute_list_swap (const int argc, const char *argv[])
 {
-  printf ("execute_list_swap\n");
+  ASSERT (argc == 3);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+  ASSERT (argv[2] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  int a = convert_to_index (argv[1]);
+  if (a < 0)
+    return;
+
+  int b = convert_to_index (argv[2]);
+  if (b < 0)
+    return;
+
+  list_swap (find_list_element_at (&entry->list, a),
+             find_list_element_at (&entry->list, b));
 }
 
 /* Iterates through a list with the name of ARGV[0] and removes all but
