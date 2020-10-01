@@ -114,7 +114,14 @@ list_handler_initialize (void)
 void
 list_handler_terminate (void)
 {
-  // TODO: Release list_table.
+  for (int i = 0; i < MAX_LIST_COUNT; ++i)
+    if (list_table[i].name[0] != '\0')
+      while (!list_empty (&list_table[i].list))
+        {
+          struct list_elem *element = list_pop_front (&list_table[i].list);
+          struct list_item *item = list_entry (element, struct list_item, elem);
+          delete_list_item (item);
+        }
 }
 
 /* Executes CMD. */
