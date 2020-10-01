@@ -246,11 +246,27 @@ execute_list_pop_front (const int argc, const char *argv[])
   printf ("execute_list_pop_front\n");
 }
 
-/* TODO: Complete document. */
+/* Creates a new list item with the data of ARGV[1] and inserts the item
+   at the end of a list with the name of ARGV[0]. */
 static void
 execute_list_push_back (const int argc, const char *argv[])
 {
-  printf ("execute_list_push_back\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  struct list_item *new_item = new_list_item (argv[1]);
+  if (new_item == NULL)
+    return;
+
+  list_push_back (&entry->list, &new_item->elem);
 }
 
 /* Creates a new list item with the data of ARGV[1] and inserts the item
