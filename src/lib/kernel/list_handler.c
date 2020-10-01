@@ -373,11 +373,28 @@ execute_list_max (const int argc, const char *argv[])
   printf ("%d\n", item->data);
 }
 
-/* TODO: Complete document. */
+/* Prints the smallest data in a list with the name of ARGV[0]. If there is
+   more than one minimum, returns the one that appears earlier in the list.
+   If the the list is empty, prints nothing. */
 static void
 execute_list_min (const int argc, const char *argv[])
 {
-  printf ("execute_list_min\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  struct list_elem *min = list_min (&entry->list, compare, NULL);
+  if (min == list_end (&entry->list))
+    return;
+
+  struct list_item *item = list_entry (min, struct list_item, elem);
+  printf ("%d\n", item->data);
 }
 
 /* Removes the back element from the list with a name of ARGV[0] and prints
