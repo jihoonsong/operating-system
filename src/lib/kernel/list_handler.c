@@ -2,8 +2,11 @@
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdio.h>
 #include <string.h>
+#include "list.h"
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
+#define MAX_LIST_COUNT 10
+#define MAX_LIST_NAME 100
 
 /* List command. */
 typedef enum list_cmd_type {CREATE, DELETE, DUMPDATA, LIST_BACK, LIST_EMPTY,
@@ -70,16 +73,26 @@ static const struct list_cmd_table list_cmd_table[LIST_CMD_COUNT] = \
    {LIST_SWAP, "list_swap", execute_list_swap},
    {LIST_UNIQUE, "list_unique", execute_list_unique}};
 
+/* List table. */
+struct list_table
+  {
+    char name[MAX_LIST_NAME];
+    struct list list;
+  };
+static struct list_table list_table[MAX_LIST_COUNT];
+
 /* Initializes list table. */
 void
 list_handler_initialize (void)
 {
+  memset (list_table, '\0', sizeof (list_table));
 }
 
 /* Releases memory. */
 void
 list_handler_terminate (void)
 {
+  // TODO: Release list_table.
 }
 
 /* Executes CMD. */
