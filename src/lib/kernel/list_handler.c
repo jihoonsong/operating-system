@@ -176,11 +176,27 @@ execute_delete (const int argc, const char *argv[])
   printf ("execute_delete\n");
 }
 
-/* TODO: Complete document. */
+/* Prints all data stored in a list with a name of ARGV[0]. */
 static void
 execute_dumpdata (const int argc, const char *argv[])
 {
-  printf ("execute_dumpdata\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    return;
+
+  if (list_empty (&entry->list))
+    return;
+
+  for (struct list_elem *element = list_begin (&entry->list);
+       element != list_end (&entry->list); element = list_next (element))
+    {
+      struct list_item *item = list_entry (element, struct list_item, elem);
+      printf ("%d ", item->data);
+    }
+  printf ("\n");
 }
 
 /* TODO: Complete document. */
