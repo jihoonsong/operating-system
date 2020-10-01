@@ -70,6 +70,18 @@ static const struct list_cmd_table list_cmd_table[LIST_CMD_COUNT] = \
    {LIST_SWAP, "list_swap", execute_list_swap},
    {LIST_UNIQUE, "list_unique", execute_list_unique}};
 
+/* Initializes list table. */
+void
+list_handler_initialize (void)
+{
+}
+
+/* Releases memory. */
+void
+list_handler_terminate (void)
+{
+}
+
 /* Executes CMD. */
 void
 list_handler_invoke (const char *cmd, const int argc,
