@@ -66,17 +66,19 @@ is_quit (const char *cmd)
   return strcmp (cmd, "quit") == 0;
 }
 
-/* Call all initializers that need to be invoked before mainloop begins. */
+/* Initializes handlers. */
 void
 mainloop_initialize (void)
 {
+  hash_handler_initialize ();
   list_handler_initialize ();
 }
 
-/* Release memory. */
+/* Releases memory. */
 void
 mainloop_terminate (void)
 {
+  hash_handler_terminate ();
   list_handler_terminate ();
 }
 

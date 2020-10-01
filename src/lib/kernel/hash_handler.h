@@ -6,6 +6,10 @@
    Hash handler is responsible for using hash tables.
 */
 
+/* Initialization and termination. */
+void hash_handler_initialize (void);
+void hash_handler_terminate (void);
+
 /* Receives and executes a command. */
 void hash_handler_invoke (const char *cmd, const int argc,
                           const char *argv[]);

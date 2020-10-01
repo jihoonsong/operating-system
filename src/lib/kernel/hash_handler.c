@@ -45,6 +45,19 @@ static const struct hash_cmd_table hash_cmd_table[HASH_CMD_COUNT] = \
    {HASH_REPLACE, "hash_replace", execute_hash_replace},
    {HASH_SIZE, "hash_size", execute_hash_size}};
 
+/* Initializes hash table. */
+void
+hash_handler_initialize (void)
+{
+  memset (hash_table, '\0', sizeof (hash_table));
+}
+
+/* Releases memory. */
+void
+hash_handler_terminate (void)
+{
+}
+
 /* Executes CMD. */
 void
 hash_handler_invoke (const char *cmd, const int argc,
