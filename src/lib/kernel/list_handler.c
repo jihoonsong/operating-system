@@ -305,11 +305,24 @@ execute_list_min (const int argc, const char *argv[])
   printf ("execute_list_min\n");
 }
 
-/* TODO: Complete document. */
+/* Removes the back element from the list with a name of ARGV[0] and prints
+   its data. Undefined behavior if LIST is empty before removal. */
 static void
 execute_list_pop_back (const int argc, const char *argv[])
 {
-  printf ("execute_list_pop_back\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  struct list_item *item = list_entry (list_pop_back (&entry->list),
+                                       struct list_item, elem);
+  delete_list_item (item);
 }
 
 /* TODO: Complete document. */
