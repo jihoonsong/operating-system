@@ -70,12 +70,14 @@ is_quit (const char *cmd)
 void
 mainloop_initialize (void)
 {
+  bitmap_handler_initialize ();
 }
 
 /* Release memory. */
 void
 mainloop_terminate (void)
 {
+  bitmap_handler_terminate ();
 }
 
 /* Start mainloop. */

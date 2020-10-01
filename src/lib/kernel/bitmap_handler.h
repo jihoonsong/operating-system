@@ -6,6 +6,10 @@
    Bitmap handler is resonsible for using bitmaps.
 */
 
+/* Initialization and termination. */
+void bitmap_handler_initialize (void);
+void bitmap_handler_terminate (void);
+
 /* Receives and executes a command. */
 void bitmap_handler_invoke (const char *cmd, const int argc,
                             const char *argv[]);

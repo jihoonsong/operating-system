@@ -55,6 +55,19 @@ static const struct bitmap_cmd_table bitmap_cmd_table[BITMAP_CMD_COUNT] = \
    {BITMAP_SIZE, "bitmap_size", execute_bitmap_size},
    {BITMAP_TEST, "bitmap_test", execute_bitmap_test}};
 
+/* Initializes bitmap table. */
+void
+bitmap_handler_initialize (void)
+{
+  memset (bitmap_table, '\0', sizeof bitmap_table);
+}
+
+/* Releases memory. */
+void
+bitmap_handler_terminate (void)
+{
+}
+
 /* Executes CMD. */
 void
 bitmap_handler_invoke (const char *cmd, const int argc,
