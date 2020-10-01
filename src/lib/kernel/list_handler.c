@@ -239,11 +239,22 @@ execute_list_back (const int argc, const char *argv[])
   printf ("%d\n", item->data);
 }
 
-/* TODO: Complete document. */
+/* Prints true if the list with the same name as ARGV[0] is empty,
+   false otherwise. */
 static void
 execute_list_empty (const int argc, const char *argv[])
 {
-  printf ("execute_list_empty\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  printf (list_empty (&entry->list) ? "true\n" : "false\n");
 }
 
 /* Prints the data stored in the list item at the beginning of the list with
