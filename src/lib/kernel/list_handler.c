@@ -398,11 +398,21 @@ execute_list_remove (const int argc, const char *argv[])
   printf ("execute_list_remove\n");
 }
 
-/* TODO: Complete document. */
+/* Reverses the order of a list with the name of ARGV[0]. */
 static void
 execute_list_reverse (const int argc, const char *argv[])
 {
-  printf ("execute_list_reverse\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  list_reverse (&entry->list);
 }
 
 /* TODO: Complete document. */
