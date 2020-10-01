@@ -246,11 +246,24 @@ execute_list_empty (const int argc, const char *argv[])
   printf ("execute_list_empty\n");
 }
 
-/* TODO: Complete document. */
+/* Prints the data stored in the list item at the beginning of the list with
+   the same name as ARGV[0]. Undefined behavior if the list is empty. */
 static void
 execute_list_front (const int argc, const char *argv[])
 {
-  printf ("execute_list_front\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  struct list_item *item = list_entry (list_front (&entry->list),
+                                       struct list_item, elem);
+  printf ("%d\n", item->data);
 }
 
 /* TODO: Complete document. */
