@@ -282,11 +282,33 @@ execute_list_front (const int argc, const char *argv[])
   printf ("%d\n", item->data);
 }
 
-/* TODO: Complete document. */
+/* Inserts a new list item with the data of ARGV[2] at the ARGV[1]-th position
+   at a list with the name of ARGV[0]. If ARGV[1] is bigger than the size of
+   the list, a new list item is inserted at the end of the list. */
 static void
 execute_list_insert (const int argc, const char *argv[])
 {
-  printf ("execute_list_insert\n");
+  ASSERT (argc == 3);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+  ASSERT (argv[2] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  int index = convert_to_index (argv[1]);
+  if (index < 0)
+    return;
+
+  struct list_item *new_item = new_list_item (argv[2]);
+  if (new_item == NULL)
+    return;
+
+  list_insert (find_list_element_at (&entry->list, index), &new_item->elem);
 }
 
 /* TODO: Complete document. */
