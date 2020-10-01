@@ -2,8 +2,11 @@
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdio.h>
 #include <string.h>
+#include "hash.h"
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
+#define MAX_HASH_COUNT 10
+#define MAX_HASH_NAME 100
 
 /* Hash command. */
 typedef enum hash_cmd_type {CREATE, DELETE, DUMPDATA, HASH_APPLY, HASH_CLEAR,
@@ -45,6 +48,14 @@ static const struct hash_cmd_table hash_cmd_table[HASH_CMD_COUNT] = \
    {HASH_REPLACE, "hash_replace", execute_hash_replace},
    {HASH_SIZE, "hash_size", execute_hash_size}};
 
+/* Hash table. */
+struct hash_table
+  {
+    char name[MAX_HASH_NAME];
+    struct hash hash;
+  };
+static struct hash_table hash_table[MAX_HASH_COUNT];
+
 /* Initializes hash table. */
 void
 hash_handler_initialize (void)
@@ -56,6 +67,7 @@ hash_handler_initialize (void)
 void
 hash_handler_terminate (void)
 {
+  // TODO: Release hash_table.
 }
 
 /* Executes CMD. */
