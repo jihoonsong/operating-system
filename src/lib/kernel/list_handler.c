@@ -169,11 +169,24 @@ execute_create (const int argc, const char *argv[])
   list_init (&new_entry->list);
 }
 
-/* TODO: Complete document. */
+/* Deletes a list with the name of ARGV[1]. */
 static void
 execute_delete (const int argc, const char *argv[])
 {
-  printf ("execute_delete\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    return;
+
+ while (!list_empty (&entry->list))
+   {
+     struct list_elem *element = list_pop_front (&entry->list);
+     struct list_item *item = list_entry (element, struct list_item, elem);
+     delete_list_item (item);
+   }
+  memset (entry, '\0', sizeof (*entry));
 }
 
 /* Prints all data stored in a list with a name of ARGV[0]. */
