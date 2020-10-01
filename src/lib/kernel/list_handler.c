@@ -489,11 +489,48 @@ execute_list_sort (const int argc, const char *argv[])
   printf ("execute_list_sort\n");
 }
 
-/* TODO: Complete document. */
+/* Removes list elements in a list with a name of ARGV[2]
+   from ARGV[3] to ARGV[4] (exclusive), then inserts them
+   at the ARGV[1]-th position in a list with a name of ARGV[0]. */
 static void
 execute_list_splice (const int argc, const char *argv[])
 {
-  printf ("execute_list_splice\n");
+  ASSERT (argc == 5);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+  ASSERT (argv[2] != NULL);
+  ASSERT (argv[3] != NULL);
+  ASSERT (argv[4] != NULL);
+
+  struct list_table *to_entry = find_list_table_entry (argv[0]);
+  if (to_entry == NULL)
+    {
+      printf("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  struct list_table *from_entry = find_list_table_entry (argv[2]);
+  if (from_entry == NULL)
+    {
+      printf("%s: list not found\n", argv[2]);
+      return;
+    }
+
+  int insert_to = convert_to_index (argv[1]);
+  if (insert_to < 0)
+    return;
+
+  int splice_start = convert_to_index (argv[3]);
+  if (splice_start < 0)
+    return;
+
+  int splice_end = convert_to_index (argv[4]);
+  if (splice_end < 0)
+    return;
+
+  list_splice (find_list_element_at (&to_entry->list, insert_to),
+               find_list_element_at (&from_entry->list, splice_start),
+               find_list_element_at (&from_entry->list, splice_end));
 }
 
 /* TODO: Complete document. */
