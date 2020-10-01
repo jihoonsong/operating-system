@@ -325,11 +325,28 @@ execute_list_insert (const int argc, const char *argv[])
   list_insert (find_list_element_at (&entry->list, index), &new_item->elem);
 }
 
-/* TODO: Complete document. */
+/* Inserts a new list item with the data of ARGV[1] in the proper position
+   in a list with the name of ARGV[0], which must be sorted in nondecreasing
+   order. */
 static void
 execute_list_insert_ordered (const int argc, const char *argv[])
 {
-  printf ("execute_list_insert_ordered\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct list_table *entry = find_list_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: list not found\n", argv[0]);
+      return;
+    }
+
+  struct list_item *new_item = new_list_item (argv[1]);
+  if (new_item == NULL)
+    return;
+
+  list_insert_ordered (&entry->list, &new_item->elem, compare, NULL);
 }
 
 /* TODO: Complete document. */
