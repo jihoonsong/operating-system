@@ -106,7 +106,9 @@ bitmap_handler_initialize (void)
 void
 bitmap_handler_terminate (void)
 {
-  // TODO: Release bitmap_table.
+  for (int i = 0; i < MAX_BITMAP_COUNT; ++i)
+    if (bitmap_table[i].name[0] != '\0')
+      bitmap_destroy (bitmap_table[i].bitmap);
 }
 
 /* Executes CMD. */
