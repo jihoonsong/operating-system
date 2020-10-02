@@ -177,11 +177,20 @@ execute_create (const int argc, const char *argv[])
     }
 }
 
-/* TODO: Complete document. */
+/* Deletes a hash table with the name of ARGV[1]. */
 static void
 execute_delete (const int argc, const char *argv[])
 {
-  printf ("execute_delete\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct hash_table *entry = find_hash_table_entry (argv[0]);
+  if (entry == NULL)
+      return;
+
+  hash_destroy (&entry->hash, delete_hash_item);
+
+  memset (entry, '\0', sizeof (*entry));
 }
 
 /* Prints all data stored in a hash table with a name of ARGV[0]. */
