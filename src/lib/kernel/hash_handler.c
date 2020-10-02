@@ -21,6 +21,10 @@ struct hash_cmd_table
     const hash_cmd_ptr execute;
   };
 
+/* Execution functions. */
+static bool compare (const struct hash_elem *a, const struct hash_elem *b,
+                     void *aux);
+static unsigned hash (const struct hash_elem *e, void *aux);
 static hash_cmd_type convert_to_hash_cmd_type (const char *cmd);
 static void execute_create (const int argc, const char *argv[]);
 static void execute_delete (const int argc, const char *argv[]);
@@ -33,6 +37,11 @@ static void execute_hash_find (const int argc, const char *argv[]);
 static void execute_hash_insert (const int argc, const char *argv[]);
 static void execute_hash_replace (const int argc, const char *argv[]);
 static void execute_hash_size (const int argc, const char *argv[]);
+static unsigned hash (const struct hash_elem *e, void *aux);
+
+/* Hash table functions. */
+static struct hash_table *find_hash_table_entry (const char *arg);
+static struct hash_table *get_empty_hash_table_entry (void);
 
 /* Hash command table. */
 static const struct hash_cmd_table hash_cmd_table[HASH_CMD_COUNT] = \
@@ -55,6 +64,17 @@ struct hash_table
     struct hash hash;
   };
 static struct hash_table hash_table[MAX_HASH_COUNT];
+
+/* Returns true if hash table is full, false otherwise. */
+static inline bool
+is_hash_table_full (void)
+{
+  for (int i = 0; i < MAX_HASH_COUNT; ++i)
+    if (hash_table[i].name[0] == '\0')
+      return false;
+
+  return true;
+}
 
 /* Initializes hash table. */
 void
@@ -82,6 +102,21 @@ hash_handler_invoke (const char *cmd, const int argc,
     hash_cmd_table[type].execute (argc, argv);
 }
 
+/* Compares the value of two list elements A and B, given
+   auxiliary data AUX.  Returns true if A is less than B, or
+   false if A is greater than or equal to B. */
+static bool
+compare (const struct hash_elem *a, const struct hash_elem *b, void *aux)
+{
+  ASSERT (a != NULL);
+  ASSERT (b != NULL);
+
+  struct hash_item *item_a = hash_entry (a, struct hash_item, elem);
+  struct hash_item *item_b = hash_entry (b, struct hash_item, elem);
+
+  return item_a->data < item_b->data ? true : false;
+}
+
 /* Converts CMD to its corresponding hash command type.
    Returns its list command type if conversion succeeds, NONE otherwise. */
 static hash_cmd_type
@@ -90,18 +125,51 @@ convert_to_hash_cmd_type (const char *cmd)
   ASSERT (cmd != NULL);
 
   for (int i = 0; i < HASH_CMD_COUNT; ++i)
-    if (strcmp(cmd, hash_cmd_table[i].name) == 0)
+    if (strcmp (cmd, hash_cmd_table[i].name) == 0)
       return hash_cmd_table[i].type;
 
   printf ("%s: command not found\n", cmd);
   return NONE;
 }
 
-/* TODO: Complete document. */
+/* Computes and returns the hash value for hash element E, given
+   auxiliary data AUX. */
+static unsigned hash (const struct hash_elem *e, void *aux)
+{
+  ASSERT (e != NULL);
+
+  struct hash_item *item = hash_entry (e, struct hash_item, elem);
+
+  return hash_int (item->data);
+}
+
+/* Creates a new hash table with the name of ARGV[1]. */
 static void
 execute_create (const int argc, const char *argv[])
 {
-  printf ("execute_create\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  if (find_hash_table_entry (argv[1]) != NULL)
+    {
+      printf ("%s: already exists\n", argv[1]);
+      return;
+    }
+
+  if (is_hash_table_full ())
+    {
+      printf ("Hash table is full\n");
+      return;
+    }
+
+  struct hash_table *new_entry = get_empty_hash_table_entry ();
+  memcpy (new_entry->name, argv[1], strlen (argv[1]) + 1);
+  if (hash_init (&new_entry->hash, hash, compare, NULL) == false)
+    {
+      printf ("Failed to create hash table.\n");
+      memset (new_entry, '\0', sizeof (*new_entry));
+    }
 }
 
 /* TODO: Complete document. */
@@ -172,4 +240,30 @@ static void
 execute_hash_size (const int argc, const char *argv[])
 {
   printf ("execute_hash_size\n");
+}
+
+/* Finds a hash table entry that has the same name as ARG.
+   Returns a pointer to the hash table entry if search succeeds,
+   NULL otherwise. */
+static struct hash_table *
+find_hash_table_entry (const char *arg)
+{
+  ASSERT (arg != NULL);
+
+  for (int i = 0; i < MAX_HASH_COUNT; ++i)
+    if (strcmp (arg, hash_table[i].name) == 0)
+      return &hash_table[i];
+
+  return NULL;
+}
+
+/* Returns an empty hash table entry, NULL if hash table is full. */
+static struct hash_table *
+get_empty_hash_table_entry (void)
+{
+  for (int i = 0; i < MAX_HASH_COUNT; ++i)
+      if (hash_table[i].name[0] == '\0')
+        return &hash_table[i];
+
+  return NULL;
 }
