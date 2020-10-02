@@ -194,7 +194,7 @@ execute_create (const int argc, const char *argv[])
 
   struct hash_table *new_entry = get_empty_hash_table_entry ();
   memcpy (new_entry->name, argv[1], strlen (argv[1]) + 1);
-  if (hash_init (&new_entry->hash, hash, compare, NULL) == false)
+  if (!hash_init (&new_entry->hash, hash, compare, NULL))
     {
       printf ("Failed to create hash table.\n");
       memset (new_entry, '\0', sizeof *new_entry);
