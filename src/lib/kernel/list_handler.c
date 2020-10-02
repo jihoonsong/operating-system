@@ -117,7 +117,7 @@ list_handler_initialize (void)
 {
   srand ((unsigned int) time (NULL)); // list_shuffle() needs this.
 
-  memset (list_table, '\0', sizeof (list_table));
+  memset (list_table, '\0', sizeof list_table);
 }
 
 /* Releases memory. */
@@ -218,7 +218,7 @@ execute_delete (const int argc, const char *argv[])
      struct list_item *item = list_entry (element, struct list_item, elem);
      delete_list_item (item);
    }
-  memset (entry, '\0', sizeof (*entry));
+  memset (entry, '\0', sizeof *entry);
 }
 
 /* Prints all data stored in a list with a name of ARGV[0]. */
@@ -750,7 +750,7 @@ new_list_item (const char *arg)
       return NULL;
     }
 
-  struct list_item *new_item = malloc (sizeof (*new_item));
+  struct list_item *new_item = malloc (sizeof *new_item);
   new_item->elem.prev = NULL;
   new_item->elem.next = NULL;
   new_item->data = data;

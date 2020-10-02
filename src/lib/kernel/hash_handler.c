@@ -87,7 +87,7 @@ is_hash_table_full (void)
 void
 hash_handler_initialize (void)
 {
-  memset (hash_table, '\0', sizeof (hash_table));
+  memset (hash_table, '\0', sizeof hash_table);
 }
 
 /* Releases memory. */
@@ -197,7 +197,7 @@ execute_create (const int argc, const char *argv[])
   if (hash_init (&new_entry->hash, hash, compare, NULL) == false)
     {
       printf ("Failed to create hash table.\n");
-      memset (new_entry, '\0', sizeof (*new_entry));
+      memset (new_entry, '\0', sizeof *new_entry);
     }
 }
 
@@ -214,7 +214,7 @@ execute_delete (const int argc, const char *argv[])
 
   hash_destroy (&entry->hash, delete_hash_item);
 
-  memset (entry, '\0', sizeof (*entry));
+  memset (entry, '\0', sizeof *entry);
 }
 
 /* Prints all data stored in a hash table with a name of ARGV[0]. */
@@ -480,7 +480,7 @@ new_hash_item (const char *arg)
       return NULL;
     }
 
-  struct hash_item *new_item = malloc (sizeof (*new_item));
+  struct hash_item *new_item = malloc (sizeof *new_item);
   new_item->elem.list_elem.prev = NULL;
   new_item->elem.list_elem.next = NULL;
   new_item->data = data;
