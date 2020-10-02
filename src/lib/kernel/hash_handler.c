@@ -26,8 +26,8 @@ struct hash_cmd_table
 /* Execution functions. */
 static bool compare (const struct hash_elem *a, const struct hash_elem *b,
                      void *aux);
-static unsigned hash (const struct hash_elem *e, void *aux);
 static hash_cmd_type convert_to_hash_cmd_type (const char *cmd);
+static unsigned hash (const struct hash_elem *e, void *aux);
 static void execute_create (const int argc, const char *argv[]);
 static void execute_delete (const int argc, const char *argv[]);
 static void execute_dumpdata (const int argc, const char *argv[]);
@@ -39,7 +39,6 @@ static void execute_hash_find (const int argc, const char *argv[]);
 static void execute_hash_insert (const int argc, const char *argv[]);
 static void execute_hash_replace (const int argc, const char *argv[]);
 static void execute_hash_size (const int argc, const char *argv[]);
-static unsigned hash (const struct hash_elem *e, void *aux);
 
 /* Hash table functions. */
 static struct hash_table *find_hash_table_entry (const char *arg);
@@ -227,11 +226,28 @@ execute_hash_find (const int argc, const char *argv[])
   printf ("execute_hash_find\n");
 }
 
-/* TODO: Complete document. */
+/* Inserts a new hash item with the data of ARGV[1] in a hash table with the
+   name of ARGV[0], if a hash value of the item is not duplicate. */
 static void
 execute_hash_insert (const int argc, const char *argv[])
 {
-  printf ("execute_hash_insert\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct hash_table *entry = find_hash_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: hashtable not found\n", argv[0]);
+      return;
+    }
+
+  struct hash_item *new_item = new_hash_item (argv[1]);
+  if (new_item == NULL)
+    return;
+
+  if (hash_insert (&entry->hash, &new_item->elem) != NULL)
+    delete_hash_item (&new_item->elem, NULL);
 }
 
 /* TODO: Complete document. */
