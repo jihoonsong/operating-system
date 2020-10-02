@@ -226,11 +226,18 @@ execute_hash_apply (const int argc, const char *argv[])
   printf ("execute_hash_apply\n");
 }
 
-/* TODO: Complete document. */
+/* Clears a hash table with the name of ARGV[1]. */
 static void
 execute_hash_clear (const int argc, const char *argv[])
 {
-  printf ("execute_hash_clear\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct hash_table *entry = find_hash_table_entry (argv[0]);
+  if (entry == NULL)
+      return;
+
+  hash_clear (&entry->hash, delete_hash_item);
 }
 
 /* TODO: Complete document. */
