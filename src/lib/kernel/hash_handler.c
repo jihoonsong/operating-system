@@ -184,11 +184,30 @@ execute_delete (const int argc, const char *argv[])
   printf ("execute_delete\n");
 }
 
-/* TODO: Complete document. */
+/* Prints all data stored in a hash table with a name of ARGV[0]. */
 static void
 execute_dumpdata (const int argc, const char *argv[])
 {
-  printf ("execute_dumpdata\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct hash_table *entry = find_hash_table_entry (argv[0]);
+  if (entry == NULL)
+    return;
+
+  if (hash_empty (&entry->hash))
+    return;
+
+  struct hash_iterator i;
+
+  hash_first (&i, &entry->hash);
+  while (hash_next (&i))
+    {
+      struct hash_item *item = hash_entry (hash_cur (&i),
+                                           struct hash_item, elem);
+      printf ("%d ", item->data);
+    }
+  printf ("\n");
 }
 
 /* TODO: Complete document. */
