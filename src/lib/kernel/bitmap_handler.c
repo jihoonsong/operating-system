@@ -177,11 +177,20 @@ execute_create (const int argc, const char *argv[])
   new_entry->bitmap = new_bitmap;
 }
 
-/* TODO: Complete document. */
+/* Deletes a bitmap with the name of ARGV[1]. */
 static void
 execute_delete (const int argc, const char *argv[])
 {
-  printf ("execute_delete\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    return;
+
+  bitmap_destroy (entry->bitmap);
+
+  memset (entry, '\0', sizeof *entry);
 }
 
 /* Prints the contents of a bitmap with a name of ARGV[0]. */
