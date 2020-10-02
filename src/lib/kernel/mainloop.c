@@ -7,7 +7,7 @@
 #include "hash_handler.h"
 #include "list_handler.h"
 
-#define ARGC_MAX 4
+#define ARGC_MAX 5
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 #define INPUT_LEN 80
 
@@ -70,12 +70,14 @@ is_quit (const char *cmd)
 void
 mainloop_initialize (void)
 {
+  list_handler_initialize ();
 }
 
 /* Release memory. */
 void
 mainloop_terminate (void)
 {
+  list_handler_terminate ();
 }
 
 /* Start mainloop. */
