@@ -231,7 +231,17 @@ execute_bitmap_expand (const int argc, const char *argv[])
 /* Dumps the contents of a bitmap with a name of ARGV[0]. */
 static void execute_bitmap_dump (const int argc, const char *argv[])
 {
-  printf ("execute_bitmap_dump\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: bitmap not found\n", argv[0]);
+      return;
+    }
+
+  bitmap_dump (entry->bitmap);
 }
 
 /* TODO: Complete document. */
