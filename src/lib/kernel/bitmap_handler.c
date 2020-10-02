@@ -281,11 +281,42 @@ execute_bitmap_set_all (const int argc, const char *argv[])
   bitmap_set_all (entry->bitmap, value);
 }
 
-/* TODO: Complete document. */
+/* Sets the ARGV[2] bits starting at ARGV[1] in a bitmap with the name of
+   ARGV[0] to ARGV[3]. */
 static void
 execute_bitmap_set_multiple (const int argc, const char *argv[])
 {
-  printf ("execute_bitmap_set_multiple\n");
+  ASSERT (argc == 4);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+  ASSERT (argv[2] != NULL);
+  ASSERT (strcmp (argv[3], "true") == 0 || strcmp (argv[3], "false") == 0);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: bitmap not found\n", argv[0]);
+      return;
+    }
+
+  char *endptr = NULL;
+  int start = strtol (argv[1], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[1]);
+      return;
+    }
+
+  int cnt = strtol (argv[2], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[2]);
+      return;
+    }
+
+  bool value = strcmp (argv[3], "true") == 0 ? true : false;
+
+  bitmap_set_multiple (entry->bitmap, start, cnt, value);
 }
 
 /* TODO: Complete document. */
