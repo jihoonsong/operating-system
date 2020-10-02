@@ -94,7 +94,9 @@ hash_handler_initialize (void)
 void
 hash_handler_terminate (void)
 {
-  // TODO: Release hash_table.
+  for (int i = 0; i < MAX_HASH_COUNT; ++i)
+    if (hash_table[i].name[0] != '\0')
+      hash_destroy (&hash_table[i].hash, delete_hash_item);
 }
 
 /* Executes CMD. */
