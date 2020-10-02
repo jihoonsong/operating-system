@@ -28,6 +28,8 @@ static bool compare (const struct hash_elem *a, const struct hash_elem *b,
                      void *aux);
 static hash_cmd_type convert_to_hash_cmd_type (const char *cmd);
 static unsigned hash (const struct hash_elem *e, void *aux);
+static void square (struct hash_elem *e, void *aux);
+static void triple (struct hash_elem *e, void *aux);
 static void execute_create (const int argc, const char *argv[]);
 static void execute_delete (const int argc, const char *argv[]);
 static void execute_dumpdata (const int argc, const char *argv[]);
@@ -148,6 +150,26 @@ static unsigned hash (const struct hash_elem *e, void *aux)
   return hash_int (item->data);
 }
 
+/* Replace data of E with squred data. */
+static void
+square (struct hash_elem *e, void *aux)
+{
+  ASSERT (e != NULL);
+
+  struct hash_item *item = hash_entry (e, struct hash_item, elem);
+  item->data = item->data * item->data;
+}
+
+/* Replace data of E with cubed data. */
+static void
+triple (struct hash_elem *e, void *aux)
+{
+  ASSERT (e != NULL);
+
+  struct hash_item *item = hash_entry (e, struct hash_item, elem);
+  item->data = item->data * item->data * item->data;
+}
+
 /* Creates a new hash table with the name of ARGV[1]. */
 static void
 execute_create (const int argc, const char *argv[])
@@ -219,11 +241,30 @@ execute_dumpdata (const int argc, const char *argv[])
   printf ("\n");
 }
 
-/* TODO: Complete document. */
+/* Calls a function specified by ARGV[1] for each element in hash table with
+   the name of ARGV[0]. Available functions are SQUARE and TRIPLE. */
 static void
 execute_hash_apply (const int argc, const char *argv[])
 {
-  printf ("execute_hash_apply\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct hash_table *entry = find_hash_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: hashtable not found\n", argv[0]);
+      return;
+    }
+
+  if (strcmp(argv[1], "square") == 0)
+    {
+      hash_apply (&entry->hash, square);
+      return;
+    }
+
+  if (strcmp(argv[1], "triple") == 0)
+      hash_apply (&entry->hash, triple);
 }
 
 /* Clears a hash table with the name of ARGV[1]. */
