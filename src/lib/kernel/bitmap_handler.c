@@ -260,11 +260,25 @@ execute_bitmap_set (const int argc, const char *argv[])
   bitmap_set (entry->bitmap, idx, value);
 }
 
-/* TODO: Complete document. */
+/* Sets all bits in a bitmap with the name of ARGV[0] to ARGV[2]. */
 static void
 execute_bitmap_set_all (const int argc, const char *argv[])
 {
-  printf ("execute_bitmap_set_all\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+  ASSERT (strcmp (argv[1], "true") == 0 || strcmp (argv[1], "false") == 0);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: bitmap not found\n", argv[0]);
+      return;
+    }
+
+  bool value = strcmp(argv[1], "true") == 0 ? true : false;
+
+  bitmap_set_all (entry->bitmap, value);
 }
 
 /* TODO: Complete document. */
