@@ -292,11 +292,21 @@ execute_hash_replace (const int argc, const char *argv[])
   printf ("execute_hash_replace\n");
 }
 
-/* TODO: Complete document. */
+/* Returns the number of elements in a hash table with the name of ARGV[0]. */
 static void
 execute_hash_size (const int argc, const char *argv[])
 {
-  printf ("execute_hash_size\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct hash_table *entry = find_hash_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: hashtable not found\n", argv[0]);
+      return;
+    }
+
+  printf ("%zu\n", hash_size (&entry->hash));
 }
 
 /* Finds a hash table entry that has the same name as ARG.
