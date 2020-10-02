@@ -184,11 +184,21 @@ execute_delete (const int argc, const char *argv[])
   printf ("execute_delete\n");
 }
 
-/* TODO: Complete document. */
+/* Prints the contents of a bitmap with a name of ARGV[0]. */
 static void
 execute_dumpdata (const int argc, const char *argv[])
 {
-  printf ("execute_dumpdata\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    return;
+
+  for (int i = 0; i < bitmap_size (entry->bitmap); ++i)
+    printf (bitmap_test (entry->bitmap, i) ? "1" : "0");
+
+  printf ("\n");
 }
 
 /* TODO: Complete document. */
