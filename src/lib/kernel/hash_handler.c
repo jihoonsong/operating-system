@@ -386,11 +386,30 @@ execute_hash_insert (const int argc, const char *argv[])
     delete_hash_item (&new_item->elem, NULL);
 }
 
-/* TODO: Complete document. */
+/* Inserts new hash item which has data of ARGV[1] in hash table in the name
+   of ARGV[0]. If there is a hash item with the same hash value, removes it
+   from the hash table and inserts the new one. */
 static void
 execute_hash_replace (const int argc, const char *argv[])
 {
-  printf ("execute_hash_replace\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct hash_table *entry = find_hash_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: hashtable not found\n", argv[0]);
+      return;
+    }
+
+  struct hash_item *new_item = new_hash_item (argv[1]);
+  if (new_item == NULL)
+    return;
+
+  struct hash_elem *old = hash_replace (&entry->hash, &new_item->elem);
+  if (old != NULL)
+    delete_hash_item (old, NULL);
 }
 
 /* Returns the number of elements in a hash table with the name of ARGV[0]. */
