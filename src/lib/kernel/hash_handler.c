@@ -1,10 +1,12 @@
 #include "hash_handler.h"
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "hash.h"
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
+#define DECIMAL 10
 #define MAX_HASH_COUNT 10
 #define MAX_HASH_NAME 100
 
@@ -42,6 +44,10 @@ static unsigned hash (const struct hash_elem *e, void *aux);
 /* Hash table functions. */
 static struct hash_table *find_hash_table_entry (const char *arg);
 static struct hash_table *get_empty_hash_table_entry (void);
+
+/* Hash item functions. */
+static void delete_hash_item (struct hash_elem *e, void *aux);
+static struct hash_item *new_hash_item (const char *arg);
 
 /* Hash command table. */
 static const struct hash_cmd_table hash_cmd_table[HASH_CMD_COUNT] = \
@@ -266,4 +272,35 @@ get_empty_hash_table_entry (void)
         return &hash_table[i];
 
   return NULL;
+}
+
+/* Releases memory of ITEM. */
+static void
+delete_hash_item (struct hash_elem *e, void *aux)
+{
+  ASSERT (e != NULL);
+
+  free (hash_entry (e, struct hash_item, elem));
+}
+
+/* Allocates memory of list hash with the data of ARG, and returns it. */
+static struct hash_item *
+new_hash_item (const char *arg)
+{
+  ASSERT (arg != NULL);
+
+  char *endptr = NULL;
+  int data = strtol (arg, &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", arg);
+      return NULL;
+    }
+
+  struct hash_item *new_item = malloc (sizeof (*new_item));
+  new_item->elem.list_elem.prev = NULL;
+  new_item->elem.list_elem.next = NULL;
+  new_item->data = data;
+
+  return new_item;
 }
