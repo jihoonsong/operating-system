@@ -1,10 +1,12 @@
 #include "bitmap_handler.h"
 #include <assert.h>	// Instead of 	#include "../debug.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "bitmap.h"
 
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
+#define DECIMAL 10
 #define MAX_BITMAP_COUNT 10
 #define MAX_BITMAP_NAME 100
 
@@ -23,6 +25,7 @@ struct bitmap_cmd_table
     const bitmap_cmd_ptr execute;
   };
 
+/* Execution functions. */
 static bitmap_cmd_type convert_to_bitmap_cmd_type (const char *cmd);
 static void execute_create (const int argc, const char *argv[]);
 static void execute_delete (const int argc, const char *argv[]);
@@ -39,6 +42,10 @@ static void execute_bitmap_set_all (const int argc, const char *argv[]);
 static void execute_bitmap_set_multiple (const int argc, const char *argv[]);
 static void execute_bitmap_size (const int argc, const char *argv[]);
 static void execute_bitmap_test (const int argc, const char *argv[]);
+
+/* Bitmap table functions. */
+static struct bitmap_table *find_bitmap_table_entry (const char *arg);
+static struct bitmap_table *get_empty_bitmap_table_entry (void);
 
 /* Bitmap command table. */
 static const struct bitmap_cmd_table bitmap_cmd_table[BITMAP_CMD_COUNT] = \
@@ -65,6 +72,17 @@ struct bitmap_table
     struct bitmap *bitmap;
   };
 static struct bitmap_table bitmap_table[MAX_BITMAP_COUNT];
+
+/* Returns true if bitmap table is full, false otherwise. */
+static inline bool
+is_bitmap_table_full (void)
+{
+  for (int i = 0; i < MAX_BITMAP_COUNT; ++i)
+    if (bitmap_table[i].name[0] == '\0')
+      return false;
+
+  return true;
+}
 
 /* Initializes bitmap table. */
 void
@@ -100,18 +118,52 @@ convert_to_bitmap_cmd_type (const char *cmd)
   ASSERT (cmd != NULL);
 
   for (int i = 0; i < BITMAP_CMD_COUNT; ++i)
-    if (strcmp(cmd, bitmap_cmd_table[i].name) == 0)
+    if (strcmp (cmd, bitmap_cmd_table[i].name) == 0)
       return bitmap_cmd_table[i].type;
 
   printf ("%s: command not found\n", cmd);
   return NONE;
 }
 
-/* TODO: Complete document. */
+/* Creates a new bitmap of ARGV[2] size with the name of ARGV[1]. */
 static void
 execute_create (const int argc, const char *argv[])
 {
-  printf ("execute_create\n");
+  ASSERT (argc == 3);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+  ASSERT (argv[2] != NULL);
+
+  if (find_bitmap_table_entry (argv[1]) != NULL)
+    {
+      printf ("%s: already exists\n", argv[1]);
+      return;
+    }
+
+  if (is_bitmap_table_full ())
+    {
+      printf ("Bitmap table is full\n");
+      return;
+    }
+
+  char *endptr = NULL;
+  int bit_cnt = strtol (argv[2], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[2]);
+      return;
+    }
+
+  struct bitmap *new_bitmap = bitmap_create (bit_cnt);
+  if (new_bitmap == NULL)
+    {
+      printf ("Failed to create bitmap.\n");
+      return;
+    }
+
+  struct bitmap_table *new_entry = get_empty_bitmap_table_entry ();
+  memcpy (new_entry->name, argv[1], strlen (argv[1]) + 1);
+  new_entry->bitmap = new_bitmap;
 }
 
 /* TODO: Complete document. */
@@ -210,4 +262,30 @@ static void
 execute_bitmap_test (const int argc, const char *argv[])
 {
   printf ("execute_bitmap_test\n");
+}
+
+/* Finds a bitmap table entry that has the same name as ARG.
+   Returns a pointer to the bitmap table entry if search succeeds,
+   NULL otherwise. */
+static struct bitmap_table *
+find_bitmap_table_entry (const char *arg)
+{
+  ASSERT (arg != NULL);
+
+  for (int i = 0; i < MAX_BITMAP_COUNT; ++i)
+    if (strcmp (arg, bitmap_table[i].name) == 0)
+      return &bitmap_table[i];
+
+  return NULL;
+}
+
+/* Returns an empty bitmap table entry, NULL if bitmap table is full. */
+static struct bitmap_table *
+get_empty_bitmap_table_entry (void)
+{
+  for (int i = 0; i < MAX_BITMAP_COUNT; ++i)
+      if (bitmap_table[i].name[0] == '\0')
+        return &bitmap_table[i];
+
+  return NULL;
 }
