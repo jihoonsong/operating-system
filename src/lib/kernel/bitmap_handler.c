@@ -229,11 +229,35 @@ execute_bitmap_scan_and_flip (const int argc, const char *argv[])
   printf ("execute_bitmap_scan_and_flip\n");
 }
 
-/* TODO: Complete document. */
+/* Sets the bit numbered ARGV[1] in a bitmap with the name of ARGV[0]
+   to ARGV[2]. */
 static void
 execute_bitmap_set (const int argc, const char *argv[])
 {
-  printf ("execute_bitmap_set\n");
+  ASSERT (argc == 3);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+  ASSERT (argv[2] != NULL);
+  ASSERT (strcmp (argv[2], "true") == 0 || strcmp (argv[2], "false") == 0);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: bitmap not found\n", argv[0]);
+      return;
+    }
+
+  char *endptr = NULL;
+  int idx = strtol (argv[1], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[1]);
+      return;
+    }
+
+  bool value = strcmp (argv[2], "true") == 0 ? true : false;
+
+  bitmap_set (entry->bitmap, idx, value);
 }
 
 /* TODO: Complete document. */
