@@ -7,7 +7,7 @@
 #include "hash_handler.h"
 #include "list_handler.h"
 
-#define ARGC_MAX 4
+#define ARGC_MAX 5
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 #define INPUT_LEN 80
 
@@ -54,7 +54,7 @@ is_broadcast (const char *cmd)
 {
   ASSERT (cmd != NULL);
 
-  return strcmp(cmd, "dumpdata") == 0 || strcmp(cmd, "delete") == 0;
+  return strcmp (cmd, "dumpdata") == 0 || strcmp (cmd, "delete") == 0;
 }
 
 /* Returns true if CMD equals "quit", false otherwise. */
@@ -63,21 +63,25 @@ is_quit (const char *cmd)
 {
   ASSERT (cmd != NULL);
 
-  return strcmp(cmd, "quit") == 0;
+  return strcmp (cmd, "quit") == 0;
 }
 
-/* Call all initializers that need to be invoked before mainloop begins. */
+/* Initializes handlers. */
 void
 mainloop_initialize (void)
 {
   bitmap_handler_initialize ();
+  hash_handler_initialize ();
+  list_handler_initialize ();
 }
 
-/* Release memory. */
+/* Releases memory. */
 void
 mainloop_terminate (void)
 {
   bitmap_handler_terminate ();
+  hash_handler_terminate ();
+  list_handler_terminate ();
 }
 
 /* Start mainloop. */

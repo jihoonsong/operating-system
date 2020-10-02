@@ -26,9 +26,16 @@
 #include "list.h"
 
 /* Hash element. */
-struct hash_elem 
+struct hash_elem
   {
     struct list_elem list_elem;
+  };
+
+/* Hash item. */
+struct hash_item
+  {
+    struct hash_elem elem;        /* Hash element. */
+    int data;                     /* Hash data. */
   };
 
 /* Converts pointer to hash element HASH_ELEM into a pointer to
@@ -56,7 +63,7 @@ typedef bool hash_less_func (const struct hash_elem *a,
 typedef void hash_action_func (struct hash_elem *e, void *aux);
 
 /* Hash table. */
-struct hash 
+struct hash
   {
     size_t elem_cnt;            /* Number of elements in table. */
     size_t bucket_cnt;          /* Number of buckets, a power of 2. */
@@ -67,7 +74,7 @@ struct hash
   };
 
 /* A hash table iterator. */
-struct hash_iterator 
+struct hash_iterator
   {
     struct hash *hash;          /* The hash table. */
     struct list *bucket;        /* Current bucket. */
@@ -99,5 +106,6 @@ bool hash_empty (struct hash *);
 unsigned hash_bytes (const void *, size_t);
 unsigned hash_string (const char *);
 unsigned hash_int (int);
+unsigned hash_int_2 (int);
 
 #endif /* lib/kernel/hash.h */

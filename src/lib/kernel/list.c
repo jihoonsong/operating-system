@@ -1,5 +1,6 @@
 #include "list.h"
 #include <assert.h>	// Instead of	#include "../debug.h"
+#include <stdlib.h>
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 
 /* Our doubly linked lists have two header elements: the "head"
@@ -343,6 +344,61 @@ list_reverse (struct list *list)
       swap (&list->head.next, &list->tail.prev);
       swap (&list->head.next->prev, &list->tail.prev->next);
     }
+}
+
+/* Shuffles LIST. */
+void
+list_shuffle (struct list *list)
+{
+  const int divisor = RAND_MAX / list_size (list);
+
+  struct list_elem *elem[2];
+  int num[2];
+  for (int i = 0; i < 1000000; ++i)
+    {
+      num[0] = rand() / divisor;
+      num[1] = rand() / divisor;
+
+      struct list_elem *e;
+      int pos;
+      for (e = list_begin (list), pos = 0;
+           e != list_end (list); e = list_next (e), ++pos)
+        {
+          if (pos == num[0])
+            elem[0] = e;
+
+          if (pos == num[1])
+            elem[1] = e;
+        }
+
+      list_swap (elem[0], elem[1]);
+    }
+}
+
+/* Swaps A and B. */
+void
+list_swap (struct list_elem *a, struct list_elem *b)
+{
+  // Swap pointers of four list elements adjacent to a and b.
+  struct list_elem *a_prev = a->prev;
+  struct list_elem *a_next = a->next;
+  struct list_elem *b_prev = b->prev;
+  struct list_elem *b_next = b->next;
+  if (a_prev != NULL)
+    a_prev->next = b;
+
+  if (a_next != NULL)
+    a_next->prev = b;
+
+  if (b_prev != NULL)
+    b_prev->next = a;
+
+  if (b_next != NULL)
+    b_next->prev = a;
+
+  // Swap pointers of a and b.
+  swap(&a->prev, &b->prev);
+  swap(&a->next, &b->next);
 }
 
 /* Returns true only if the list elements A through B (exclusive)
