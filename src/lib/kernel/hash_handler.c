@@ -281,11 +281,36 @@ execute_hash_clear (const int argc, const char *argv[])
   hash_clear (&entry->hash, delete_hash_item);
 }
 
-/* TODO: Complete document. */
+/* Finds and deallocate an hash item which has a data equal to ARGV[1]
+   in hash table with the name of ARGV[0], if search is succeeds. */
 static void
 execute_hash_delete (const int argc, const char *argv[])
 {
-  printf ("execute_hash_delete\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct hash_table *entry = find_hash_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: hashtable not found\n", argv[0]);
+      return;
+    }
+
+  char *endptr = NULL;
+  int data = strtol (argv[1], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[1]);
+      return;
+    }
+
+  struct hash_item item = {(struct hash_elem) {NULL, NULL}, data};
+  struct hash_elem *element = hash_delete (&entry->hash, &item.elem);
+  if (element == NULL)
+    return;
+
+  delete_hash_item (element, NULL);
 }
 
 /* Returns true if a hash table with the name of ARGV[0]
