@@ -319,11 +319,21 @@ execute_bitmap_set_multiple (const int argc, const char *argv[])
   bitmap_set_multiple (entry->bitmap, start, cnt, value);
 }
 
-/* TODO: Complete document. */
+/* Returns the number of bits in a bitmap with the name of ARGV[0]. */
 static void
 execute_bitmap_size (const int argc, const char *argv[])
 {
-  printf ("execute_bitmap_size\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: bitmap not found\n", argv[0]);
+      return;
+    }
+
+  printf ("%zu\n", bitmap_size (entry->bitmap));
 }
 
 /* TODO: Complete document. */
