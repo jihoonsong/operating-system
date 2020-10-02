@@ -336,11 +336,31 @@ execute_bitmap_size (const int argc, const char *argv[])
   printf ("%zu\n", bitmap_size (entry->bitmap));
 }
 
-/* TODO: Complete document. */
+/* Returns the value of the bit numbered ARGV[1] in a bitmap with
+   the name of ARGV[0]. */
 static void
 execute_bitmap_test (const int argc, const char *argv[])
 {
-  printf ("execute_bitmap_test\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: bitmap not found\n", argv[0]);
+      return;
+    }
+
+  char *endptr = NULL;
+  int idx = strtol (argv[1], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[1]);
+      return;
+    }
+
+  printf (bitmap_test (entry->bitmap, idx) ? "true\n" : "false\n");
 }
 
 /* Finds a bitmap table entry that has the same name as ARG.
