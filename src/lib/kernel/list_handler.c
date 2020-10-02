@@ -152,6 +152,9 @@ list_handler_invoke (const char *cmd, const int argc,
 static bool
 compare (const struct list_elem *a, const struct list_elem *b, void *aux)
 {
+  ASSERT (a != NULL);
+  ASSERT (b != NULL);
+
   struct list_item *item_a = list_entry (a, struct list_item, elem);
   struct list_item *item_b = list_entry (b, struct list_item, elem);
 
