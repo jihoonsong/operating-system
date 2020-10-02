@@ -414,11 +414,31 @@ execute_bitmap_none (const int argc, const char *argv[])
   printf (bitmap_none (entry->bitmap, start, cnt) ? "true\n" : "false\n");
 }
 
-/* TODO: Complete document. */
+/* Sets the bit numbered ARGV[1] in a bitmap with the name of ARGV[0]
+   to false. */
 static void
 execute_bitmap_reset (const int argc, const char *argv[])
 {
-  printf ("execute_bitmap_reset\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: bitmap not found\n", argv[0]);
+      return;
+    }
+
+  char *endptr = NULL;
+  int idx = strtol (argv[1], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[1]);
+      return;
+    }
+
+  bitmap_reset (entry->bitmap, idx);
 }
 
 /* TODO: Complete document. */
