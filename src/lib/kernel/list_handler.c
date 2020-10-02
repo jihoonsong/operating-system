@@ -218,6 +218,7 @@ execute_delete (const int argc, const char *argv[])
      struct list_item *item = list_entry (element, struct list_item, elem);
      delete_list_item (item);
    }
+
   memset (entry, '\0', sizeof *entry);
 }
 
