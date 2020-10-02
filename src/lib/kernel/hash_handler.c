@@ -247,11 +247,22 @@ execute_hash_delete (const int argc, const char *argv[])
   printf ("execute_hash_delete\n");
 }
 
-/* TODO: Complete document. */
+/* Returns true if a hash table with the name of ARGV[0]
+   contains no elements, false otherwise. */
 static void
 execute_hash_empty (const int argc, const char *argv[])
 {
-  printf ("execute_hash_empty\n");
+  ASSERT (argc == 1);
+  ASSERT (argv[0] != NULL);
+
+  struct hash_table *entry = find_hash_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: hashtable not found\n", argv[0]);
+      return;
+    }
+
+  printf (hash_empty (&entry->hash) ? "true\n" : "false\n");
 }
 
 /* TODO: Complete document. */
