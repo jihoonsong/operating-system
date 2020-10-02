@@ -210,11 +210,40 @@ execute_dumpdata (const int argc, const char *argv[])
   printf ("\n");
 }
 
-/* TODO: Complete document. */
+/* Returns true if every bit in a bitmap with the name of ARGV[0]
+   between ARGV[1] and  ARGV[1] + ARGV[2], exclusive, is set to true,
+   and false otherwise. */
 static void
 execute_bitmap_all (const int argc, const char *argv[])
 {
-  printf ("execute_bitmap_all\n");
+  ASSERT (argc == 3);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+  ASSERT (argv[2] != NULL);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: bitmap not found\n", argv[0]);
+      return;
+    }
+
+  char *endptr = NULL;
+  int start = strtol (argv[1], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[1]);
+      return;
+    }
+
+  int cnt = strtol (argv[2], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[2]);
+      return;
+    }
+
+  printf (bitmap_all (entry->bitmap, start, cnt) ? "true\n" : "false\n");
 }
 
 /* TODO: Complete document. */
