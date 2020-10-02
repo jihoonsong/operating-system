@@ -255,7 +255,7 @@ execute_list_back (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -275,7 +275,7 @@ execute_list_empty (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -293,7 +293,7 @@ execute_list_front (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -414,7 +414,7 @@ execute_list_pop_back (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -434,7 +434,7 @@ execute_list_pop_front (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -521,7 +521,7 @@ execute_list_reverse (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -538,7 +538,7 @@ execute_list_shuffle (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -556,7 +556,7 @@ execute_list_size (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -573,7 +573,7 @@ execute_list_sort (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -596,14 +596,14 @@ execute_list_splice (const int argc, const char *argv[])
   struct list_table *to_entry = find_list_table_entry (argv[0]);
   if (to_entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
   struct list_table *from_entry = find_list_table_entry (argv[2]);
   if (from_entry == NULL)
     {
-      printf("%s: list not found\n", argv[2]);
+      printf ("%s: list not found\n", argv[2]);
       return;
     }
 
@@ -637,7 +637,7 @@ execute_list_swap (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -666,7 +666,7 @@ execute_list_unique (const int argc, const char *argv[])
   struct list_table *entry = find_list_table_entry (argv[0]);
   if (entry == NULL)
     {
-      printf("%s: list not found\n", argv[0]);
+      printf ("%s: list not found\n", argv[0]);
       return;
     }
 
@@ -676,7 +676,7 @@ execute_list_unique (const int argc, const char *argv[])
       struct list_table *_entry = find_list_table_entry (argv[1]);
       if (_entry == NULL)
         {
-          printf("%s: list not found\n", argv[1]);
+          printf ("%s: list not found\n", argv[1]);
           return;
         }
 
