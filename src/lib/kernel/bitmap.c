@@ -113,6 +113,22 @@ bitmap_create_in_buf (size_t bit_cnt, void *block, size_t block_size )
   return b;
 }
 
+/* Expands the size of BITMAP by SIZE. Its contents are preserved. */
+struct bitmap *
+bitmap_expand (struct bitmap *bitmap, int size)
+{
+  ASSERT (bitmap != NULL);
+  ASSERT (size > 0);
+
+  if (size == 0)
+    return bitmap;
+
+  bitmap->bit_cnt += size;
+  bitmap->bits = realloc (bitmap->bits, byte_cnt (bitmap->bit_cnt));
+
+  return bitmap;
+}
+
 /* Returns the number of bytes required to accomodate a bitmap
    with BIT_CNT bits (for use with bitmap_create_in_buf()). */
 size_t

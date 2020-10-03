@@ -2,8 +2,13 @@
 #define __LIB_KERNEL_BITMAP_HANDLER_H
 
 /* Bitmap handler.
-   // TODO: Complete document.
+
+   Bitmap handler is resonsible for using bitmaps.
 */
+
+/* Initialization and termination. */
+void bitmap_handler_initialize (void);
+void bitmap_handler_terminate (void);
 
 /* Receives and executes a command. */
 void bitmap_handler_invoke (const char *cmd, const int argc,

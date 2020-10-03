@@ -194,7 +194,7 @@ execute_create (const int argc, const char *argv[])
 
   struct hash_table *new_entry = get_empty_hash_table_entry ();
   memcpy (new_entry->name, argv[1], strlen (argv[1]) + 1);
-  if (hash_init (&new_entry->hash, hash, compare, NULL) == false)
+  if (!hash_init (&new_entry->hash, hash, compare, NULL))
     {
       printf ("Failed to create hash table.\n");
       memset (new_entry, '\0', sizeof *new_entry);
@@ -251,6 +251,7 @@ execute_hash_apply (const int argc, const char *argv[])
   ASSERT (argc == 2);
   ASSERT (argv[0] != NULL);
   ASSERT (argv[1] != NULL);
+  ASSERT (strcmp (argv[1], "square") == 0 || strcmp (argv[1], "triple") == 0);
 
   struct hash_table *entry = find_hash_table_entry (argv[0]);
   if (entry == NULL)
@@ -259,14 +260,7 @@ execute_hash_apply (const int argc, const char *argv[])
       return;
     }
 
-  if (strcmp(argv[1], "square") == 0)
-    {
-      hash_apply (&entry->hash, square);
-      return;
-    }
-
-  if (strcmp(argv[1], "triple") == 0)
-      hash_apply (&entry->hash, triple);
+  hash_apply (&entry->hash, strcmp(argv[1], "square") == 0 ? square : triple);
 }
 
 /* Clears a hash table with the name of ARGV[1]. */
