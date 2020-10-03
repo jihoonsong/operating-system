@@ -70,6 +70,7 @@ is_quit (const char *cmd)
 void
 mainloop_initialize (void)
 {
+  bitmap_handler_initialize ();
   hash_handler_initialize ();
   list_handler_initialize ();
 }
@@ -78,6 +79,7 @@ mainloop_initialize (void)
 void
 mainloop_terminate (void)
 {
+  bitmap_handler_terminate ();
   hash_handler_terminate ();
   list_handler_terminate ();
 }
