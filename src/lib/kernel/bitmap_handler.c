@@ -363,11 +363,31 @@ execute_bitmap_count (const int argc, const char *argv[])
   printf ("%zu\n", bitmap_count (entry->bitmap, start, cnt, value));
 }
 
-/* TODO: Complete document. */
+/* Expands the size of a bitmap with the name of ARGV[0] by ARGV[1].
+   Its contents are preserved. */
 static void
 execute_bitmap_expand (const int argc, const char *argv[])
 {
-  printf ("execute_bitmap_expand\n");
+  ASSERT (argc == 2);
+  ASSERT (argv[0] != NULL);
+  ASSERT (argv[1] != NULL);
+
+  struct bitmap_table *entry = find_bitmap_table_entry (argv[0]);
+  if (entry == NULL)
+    {
+      printf ("%s: bitmap not found\n", argv[0]);
+      return;
+    }
+
+  char *endptr = NULL;
+  int size = strtol (argv[1], &endptr, DECIMAL);
+  if (*endptr != '\0')
+    {
+      printf ("%s: not decimal\n", argv[1]);
+      return;
+    }
+
+  entry->bitmap = bitmap_expand (entry->bitmap, size);
 }
 
 /* Dumps the contents of a bitmap with a name of ARGV[0]. */
