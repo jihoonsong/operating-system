@@ -6,8 +6,10 @@
    See hash.h for basic information. */
 
 #include "hash.h"
-#include "../debug.h"
-#include "threads/malloc.h"
+#include <assert.h>	// Instead of 	#include "../debug.h"
+#include <stdlib.h>	//		#include "threads/malloc.h"
+
+#define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 
 #define list_elem_to_hash_elem(LIST_ELEM)                       \
         list_entry(LIST_ELEM, struct hash_elem, list_elem)
@@ -299,6 +301,44 @@ unsigned
 hash_int (int i) 
 {
   return hash_bytes (&i, sizeof i);
+}
+
+static const int PEARSON_TABLE[256] = \
+{209, 128, 79, 153, 22, 196, 161, 2, 1, 249, 187, 141, 64, 139, 67, 254, 75,
+ 49, 24, 162, 176, 31, 132, 203, 192, 101, 95, 42, 122, 212, 232, 74, 111, 173,
+ 166, 25, 60, 87, 16, 246, 242, 77, 33, 118, 94, 82, 35, 50, 172, 143, 65, 53,
+ 88, 119, 86, 43, 71, 130, 144, 131, 56, 11, 168, 83, 239, 129, 174, 7, 13, 18,
+ 199, 97, 208, 20, 189, 92, 80, 106, 171, 195, 26, 57, 138, 184, 170, 103, 247,
+ 12, 228, 237, 46, 98, 70, 0, 39, 155, 182, 181, 84, 202, 27, 216, 115, 68,
+ 229, 240, 85, 140, 91, 105, 133, 169, 175, 73, 230, 108, 200, 164, 142, 14,
+ 197, 231, 148, 34, 217, 146, 221, 109, 61, 137, 224, 76, 52, 90, 150, 112, 72,
+ 66, 205, 51, 193, 17, 222, 59, 104, 127, 206, 10, 40, 78, 37, 165, 245, 38,
+ 163, 69, 152, 179, 114, 125, 243, 32, 55, 6, 58, 236, 63, 151, 220, 99, 201,
+ 204, 226, 4, 214, 183, 218, 135, 235, 210, 223, 8, 145, 188, 29, 251, 149,
+ 248, 156, 93, 186, 244, 159, 116, 81, 54, 89, 44, 253, 110, 19, 30, 219, 48,
+ 136, 124, 117, 15, 177, 45, 47, 194, 147, 190, 9, 62, 3, 191, 185, 158, 238,
+ 23, 36, 28, 113, 21, 233, 167, 96, 126, 252, 250, 227, 234, 107, 180, 178,
+ 120, 160, 41, 241, 134, 213, 225, 157, 211, 123, 215, 198, 154, 100, 102, 5,
+ 255, 207, 121};
+
+/* Returns a hash of integer I. */
+unsigned
+hash_int_2 (int i)
+{
+  /* Pearson 64-bit hash. */
+  const unsigned char *buf = (void *) &i;
+
+  uint64_t hash;
+  for (int i = 0; i < sizeof hash; ++i)
+    {
+      unsigned char lsb = PEARSON_TABLE[(buf[0] + i) % 256];
+      for (int j = 1; j < sizeof *buf; ++j)
+        lsb = PEARSON_TABLE[lsb ^ buf[j]];
+
+      hash = ((hash << 8) | lsb); // Modify LSB.
+    }
+
+  return hash;
 }
 
 /* Returns the bucket in H that E belongs in. */

@@ -1,5 +1,7 @@
 #include "list.h"
-#include "../debug.h"
+#include <assert.h>	// Instead of	#include "../debug.h"
+#include <stdlib.h>
+#define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 
 /* Our doubly linked lists have two header elements: the "head"
    just before the first element and the "tail" just after the
@@ -32,7 +34,7 @@
    operations, which can be valuable.) */
 
 static bool is_sorted (struct list_elem *a, struct list_elem *b,
-                       list_less_func *less, void *aux) UNUSED;
+                       list_less_func *less, void *aux);// Remove KERNEL MACRO 'UNUSED';
 
 /* Returns true if ELEM is a head, false otherwise. */
 static inline bool
@@ -222,13 +224,21 @@ list_push_back (struct list *list, struct list_elem *elem)
 /* Removes ELEM from its list and returns the element that
    followed it.  Undefined behavior if ELEM is not in a list.
 
-   A list element must be treated very carefully after removing
-   it from its list.  Calling list_next() or list_prev() on ELEM
-   will return the item that was previously before or after ELEM,
-   but, e.g., list_prev(list_next(ELEM)) is no longer ELEM!
+   It's not safe to treat ELEM as an element in a list after
+   removing it.  In particular, using list_next() or list_prev()
+   on ELEM after removal yields undefined behavior.  This means
+   that a naive loop to remove the elements in a list will fail:
 
-   The list_remove() return value provides a convenient way to
-   iterate and remove elements from a list:
+   ** DON'T DO THIS **
+   for (e = list_begin (&list); e != list_end (&list); e = list_next (e))
+     {
+       ...do something with e...
+       list_remove (e);
+     }
+   ** DON'T DO THIS **
+
+   Here is one correct way to iterate and remove elements from a
+   list:
 
    for (e = list_begin (&list); e != list_end (&list); e = list_remove (e))
      {
@@ -334,6 +344,61 @@ list_reverse (struct list *list)
       swap (&list->head.next, &list->tail.prev);
       swap (&list->head.next->prev, &list->tail.prev->next);
     }
+}
+
+/* Shuffles LIST. */
+void
+list_shuffle (struct list *list)
+{
+  const int divisor = RAND_MAX / list_size (list);
+
+  struct list_elem *elem[2];
+  int num[2];
+  for (int i = 0; i < 1000000; ++i)
+    {
+      num[0] = rand() / divisor;
+      num[1] = rand() / divisor;
+
+      struct list_elem *e;
+      int pos;
+      for (e = list_begin (list), pos = 0;
+           e != list_end (list); e = list_next (e), ++pos)
+        {
+          if (pos == num[0])
+            elem[0] = e;
+
+          if (pos == num[1])
+            elem[1] = e;
+        }
+
+      list_swap (elem[0], elem[1]);
+    }
+}
+
+/* Swaps A and B. */
+void
+list_swap (struct list_elem *a, struct list_elem *b)
+{
+  // Swap pointers of four list elements adjacent to a and b.
+  struct list_elem *a_prev = a->prev;
+  struct list_elem *a_next = a->next;
+  struct list_elem *b_prev = b->prev;
+  struct list_elem *b_next = b->next;
+  if (a_prev != NULL)
+    a_prev->next = b;
+
+  if (a_next != NULL)
+    a_next->prev = b;
+
+  if (b_prev != NULL)
+    b_prev->next = a;
+
+  if (b_next != NULL)
+    b_next->prev = a;
+
+  // Swap pointers of a and b.
+  swap(&a->prev, &b->prev);
+  swap(&a->next, &b->next);
 }
 
 /* Returns true only if the list elements A through B (exclusive)
