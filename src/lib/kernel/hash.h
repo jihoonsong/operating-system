@@ -31,13 +31,6 @@ struct hash_elem
     struct list_elem list_elem;
   };
 
-/* Hash item. */
-struct hash_item
-  {
-    struct hash_elem elem;        /* Hash element. */
-    int data;                     /* Hash data. */
-  };
-
 /* Converts pointer to hash element HASH_ELEM into a pointer to
    the structure that HASH_ELEM is embedded inside.  Supply the
    name of the outer structure STRUCT and the member name MEMBER
@@ -106,6 +99,5 @@ bool hash_empty (struct hash *);
 unsigned hash_bytes (const void *, size_t);
 unsigned hash_string (const char *);
 unsigned hash_int (int);
-unsigned hash_int_2 (int);
 
 #endif /* lib/kernel/hash.h */

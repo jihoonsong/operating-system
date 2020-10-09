@@ -10,7 +10,6 @@
 /* Creation and destruction. */
 struct bitmap *bitmap_create (size_t bit_cnt);
 struct bitmap *bitmap_create_in_buf (size_t bit_cnt, void *, size_t byte_cnt);
-struct bitmap *bitmap_expand (struct bitmap *bitmap, int size);
 size_t bitmap_buf_size (size_t bit_cnt);
 void bitmap_destroy (struct bitmap *);
 
