@@ -50,9 +50,19 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  char *file_name = file_name_;
+  const char delim[] = " \t";
+  char *save_ptr;
+  int argc = 0;
+  char *argv[strlen (file_name_) / 2 + 1];
+  char *file_name;
   struct intr_frame if_;
   bool success;
+
+  /* Parse FILE_NAME_, which is the first non-option argument, into
+     a name of ELF file to be executed and its arguments. */
+  file_name = strtok_r (file_name_, delim, &save_ptr);
+  for (argv[argc] = file_name; argv[argc] != NULL;)
+    argv[++argc] = strtok_r (NULL, delim, &save_ptr);
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
