@@ -20,6 +20,8 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static void push_arguments_onto_stack (const int argc, const char *argv[],
+                                       void **esp);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -50,9 +52,19 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  char *file_name = file_name_;
+  const char delim[] = " \t";
+  char *save_ptr;
+  int argc = 0;
+  char *argv[strlen (file_name_) / 2 + 1];
+  char *file_name;
   struct intr_frame if_;
   bool success;
+
+  /* Parse FILE_NAME_, which is the first non-option argument, into
+     a name of ELF file to be executed and its arguments. */
+  file_name = strtok_r (file_name_, delim, &save_ptr);
+  for (argv[argc] = file_name; argv[argc] != NULL;)
+    argv[++argc] = strtok_r (NULL, delim, &save_ptr);
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -60,6 +72,10 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
+
+  /* Push arguments onto the stack. */
+  if (success)
+    push_arguments_onto_stack (argc, (const char **) argv, &if_.esp);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -464,4 +480,46 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+/* Push arguments onto the stack obeying 80x86 calling convention. */
+static void
+push_arguments_onto_stack (const int argc, const char *argv[], void **esp)
+{
+  const uintptr_t WORD = 4;
+  uintptr_t argv_addr[argc + 1];
+
+  /* Push arguments. */
+  argv_addr[argc] = (uintptr_t) PHYS_BASE;
+  for (int i = argc - 1; i >= 0; --i)
+    {
+      size_t argv_size = strlen (argv[i]) + 1;
+      argv_addr[i] = argv_addr[i + 1] - argv_size;
+
+      *esp -= argv_size;
+      memcpy (*esp, argv[i], argv_size);
+    }
+  argv_addr[argc] = 0;
+
+  /* Push word alignment. */
+  *esp -= (uintptr_t) *esp % WORD;
+
+  /* Push pointers to arguments. */
+  for (int i = argc; i >= 0; --i)
+    {
+      *esp -= WORD;
+      memcpy (*esp, &argv_addr[i], WORD);
+    }
+
+  /* Push a pointer to the argument vector. */
+  *esp -= WORD;
+  memcpy (*esp, &(uintptr_t) {(uintptr_t) *esp + WORD}, WORD);
+
+  /* Push the argument count. */
+  *esp -= WORD;
+  memcpy (*esp, &argc, WORD);
+
+  /* Push a return address. */
+  *esp -= WORD;
+  memset (*esp, 0, WORD);
 }
