@@ -503,6 +503,10 @@ install_page (void *upage, void *kpage, bool writable)
 static void
 push_arguments_onto_stack (const int argc, const char *argv[], void **esp)
 {
+  ASSERT (argc >= 0);
+  ASSERT (argv != NULL);
+  ASSERT (esp != NULL);
+
   const uintptr_t WORD = 4;
   uintptr_t argv_addr[argc + 1];
 
