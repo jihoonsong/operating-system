@@ -40,10 +40,27 @@ process_execute (const char *task)
     return TID_ERROR;
   strlcpy (task_copy, task, PGSIZE);
 
+  char *file_name;
+  char *save_ptr;
+
+  /* Make a copy of TASK and parse it into ELF name.
+     Otherwise there's a race between the caller and load(). */
+  file_name = palloc_get_page (0);
+  if (file_name == NULL)
+    {
+      palloc_free_page (task_copy);
+      return TID_ERROR;
+    }
+  strlcpy (file_name, task, PGSIZE);
+  file_name = strtok_r (file_name, " \t", &save_ptr);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (task, PRI_DEFAULT, start_process, task_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, task_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (task_copy);
+    {
+      palloc_free_page (task_copy);
+      palloc_free_page (file_name);
+    }
   return tid;
 }
 
