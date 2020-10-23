@@ -67,19 +67,19 @@ process_execute (const char *task)
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *file_name_)
+start_process (void *task)
 {
   const char delim[] = " \t";
   char *save_ptr;
   int argc = 0;
-  char *argv[strlen (file_name_) / 2 + 1];
+  char *argv[strlen (task) / 2 + 1];
   char *file_name;
   struct intr_frame if_;
   bool success;
 
   /* Parse FILE_NAME_, which is the first non-option argument, into
      a name of ELF file to be executed and its arguments. */
-  file_name = strtok_r (file_name_, delim, &save_ptr);
+  file_name = strtok_r (task, delim, &save_ptr);
   for (argv[argc] = file_name; argv[argc] != NULL;)
     argv[++argc] = strtok_r (NULL, delim, &save_ptr);
 
