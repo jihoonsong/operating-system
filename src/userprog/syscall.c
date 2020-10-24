@@ -33,18 +33,29 @@ syscall_handler (struct intr_frame *f UNUSED)
   switch (syscall_num)
     {
       case SYS_HALT:
+        halt ();
         break;
       case SYS_EXIT:
+        exit (*(int *) validate_ptr (f->esp + 4));
         break;
       case SYS_EXEC:
+        f->eax = exec (validate_ptr (f->esp + 4));
         break;
       case SYS_WAIT:
+        f->eax = wait (*(tid_t *) validate_ptr (f->esp + 4));
         break;
       case SYS_READ:
+        f->eax = read (*(int *) validate_ptr (f->esp + 4),
+                       validate_ptr (f->esp + 8),
+                       *(unsigned int *) validate_ptr (f->esp + 12));
         break;
       case SYS_WRITE:
+        f->eax = write (*(int *) validate_ptr (f->esp + 4),
+                        validate_ptr (f->esp + 8),
+                        *(unsigned int *) validate_ptr (f->esp + 12));
         break;
       default:
+        // Do nothing.
         break;
     }
 }
