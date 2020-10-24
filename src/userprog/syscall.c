@@ -11,6 +11,12 @@ static bool put_user (uint8_t *udst, uint8_t byte);
 static void *validate_ptr (void *ptr);
 
 static void syscall_handler (struct intr_frame *);
+static void halt (void);
+static void exit (int status);
+static tid_t exec (const char *task);
+static int wait (tid_t tid);
+static int read (int fd, void *buffer, unsigned int size);
+static int write (int fd, const void *buffer, unsigned int size);
 
 void
 syscall_init (void)
@@ -84,4 +90,46 @@ validate_ptr (void *ptr)
     exit (-1);
 
   return ptr;
+}
+
+/* Halt the operating system. */
+static void
+halt (void)
+{
+}
+
+/* Terminate this process. */
+static void
+exit (int status)
+{
+}
+
+/* Start another process. */
+static tid_t
+exec (const char *task)
+{
+  ASSERT (task != NULL);
+}
+
+/* Wait for a child process to die. */
+static int
+wait (tid_t tid)
+{
+  ASSERT (tid >= 1);
+}
+
+/* Read from a file. */
+static int
+read (int fd, void *buffer, unsigned int size)
+{
+  ASSERT (fd > 0);
+  ASSERT (buffer != NULL);
+}
+
+/* Write to a file. */
+static int
+write (int fd, const void *buffer, unsigned int size)
+{
+  ASSERT (fd > 0);
+  ASSERT (buffer != NULL);
 }
