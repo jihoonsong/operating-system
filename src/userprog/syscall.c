@@ -1,6 +1,7 @@
 #include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
+#include "devices/shutdown.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
@@ -127,6 +128,7 @@ validate_ptr (void *ptr)
 static void
 halt (void)
 {
+  shutdown_power_off ();
 }
 
 /* Terminate this process. */
