@@ -1,6 +1,7 @@
 #include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
+#include "devices/input.h"
 #include "devices/shutdown.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
@@ -161,6 +162,17 @@ read (int fd, void *buffer, unsigned int size)
 {
   ASSERT (fd > 0);
   ASSERT (buffer != NULL);
+
+  if (fd == STDIN_FILENO)
+    {
+      for (unsigned int i = 0; i < size; ++i)
+        if (!put_user (buffer + i, input_getc ()))
+          exit (-1);
+
+      return size;
+    }
+
+  return -1;
 }
 
 /* Write to a file. */
