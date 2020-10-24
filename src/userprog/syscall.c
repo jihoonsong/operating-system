@@ -4,6 +4,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "userprog/process.h"
 
 static int get_user (const uint8_t *uaddr);
 static void indirect_user (const void *uptr, void *uindirect);
@@ -140,6 +141,8 @@ static tid_t
 exec (const char *task)
 {
   ASSERT (task != NULL);
+
+  return process_execute (task);
 }
 
 /* Wait for a child process to die. */
