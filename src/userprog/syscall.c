@@ -56,7 +56,8 @@ syscall_handler (struct intr_frame *f UNUSED)
                         *(unsigned int *) validate_ptr (f->esp + 12));
         break;
       default:
-        // Do nothing.
+        /* Invalid system call number. Terminate current process. */
+        exit (-1);
         break;
     }
 }
