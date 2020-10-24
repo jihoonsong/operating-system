@@ -27,8 +27,26 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED)
 {
-  printf ("system call!\n");
-  thread_exit ();
+  ASSERT (f != NULL);
+
+  int syscall_num = *(int *) validate_ptr (f->esp);
+  switch (syscall_num)
+    {
+      case SYS_HALT:
+        break;
+      case SYS_EXIT:
+        break;
+      case SYS_EXEC:
+        break;
+      case SYS_WAIT:
+        break;
+      case SYS_READ:
+        break;
+      case SYS_WRITE:
+        break;
+      default:
+        break;
+    }
 }
 
 /* Reads a byte at user virtual address UADDR.
