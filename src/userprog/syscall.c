@@ -3,9 +3,11 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
 
 static int get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
+static void *validate_ptr (void *ptr);
 
 static void syscall_handler (struct intr_frame *);
 
@@ -50,4 +52,15 @@ put_user (uint8_t *udst, uint8_t byte)
       : "=&a" (error_code), "=m" (*udst) : "q" (byte));
 
   return error_code != -1;
+}
+
+/* Return PTR if it is not NULL and points to a valid user virtual address.
+   Otherwise, call EXIT (-1) and terminate current process. */
+static void *
+validate_ptr (void *ptr)
+{
+  if (ptr == NULL || ptr >= PHYS_BASE || get_user (ptr) == -1)
+    exit (-1);
+
+  return ptr;
 }
