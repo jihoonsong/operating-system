@@ -131,6 +131,8 @@ halt (void)
 static void
 exit (int status)
 {
+  printf ("%s: exit(%d)\n", thread_current ()->name, status);
+  thread_exit ();
 }
 
 /* Start another process. */
