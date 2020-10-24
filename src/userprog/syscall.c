@@ -6,6 +6,7 @@
 #include "threads/vaddr.h"
 
 static int get_user (const uint8_t *uaddr);
+static void indirect_user (const void *uptr, void *uindirect);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static void *validate_ptr (void *ptr);
 
@@ -37,6 +38,26 @@ get_user (const uint8_t *uaddr)
       : "=&a" (result) : "m" (*uaddr));
 
   return result;
+}
+
+/* Replace UINDIRECT with the indirected user virtual address UPTR.
+   In order to do that, UINDIRECT must be a pointer to a void * typed variable,
+   which is used to indirect address accessing.
+   If UPTR is invalid, call EXIT (-1) and terminate current process. */
+static void
+indirect_user (const void *uptr, void *uindirect)
+{
+  ASSERT (uptr != NULL);
+  ASSERT (uindirect != NULL);
+
+  for (size_t i = 0; i < sizeof uptr; ++i)
+    {
+      int value = get_user (uptr + i);
+      if (value == -1)
+        exit (-1);
+
+      *(char *) (uindirect + i) = value & 0xFF;
+    }
 }
 
 /* Writes BYTE to user address UDST.
