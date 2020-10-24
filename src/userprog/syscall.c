@@ -161,4 +161,15 @@ write (int fd, const void *buffer, unsigned int size)
 {
   ASSERT (fd > 0);
   ASSERT (buffer != NULL);
+
+  void *buffer_indirect;
+  indirect_user (buffer, &buffer_indirect);
+
+  if (fd == STDOUT_FILENO)
+    {
+      putbuf (buffer_indirect, size);
+      return size;
+    }
+
+  return -1;
 }
