@@ -24,45 +24,62 @@ static void push_arguments_onto_stack (const int argc, const char *argv[],
                                        void **esp);
 
 /* Starts a new thread running a user program loaded from
-   FILENAME.  The new thread may be scheduled (and may even exit)
+   TASK.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
 tid_t
-process_execute (const char *file_name)
+process_execute (const char *task)
 {
-  char *fn_copy;
+  char *task_copy;
   tid_t tid;
 
-  /* Make a copy of FILE_NAME.
+  /* Make a copy of TASK.
      Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page (0);
-  if (fn_copy == NULL)
+  task_copy = palloc_get_page (0);
+  if (task_copy == NULL)
     return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
+  strlcpy (task_copy, task, PGSIZE);
+
+  char *file_name;
+  char *save_ptr;
+
+  /* Make a copy of TASK and parse it into ELF name.
+     Otherwise there's a race between the caller and load(). */
+  file_name = palloc_get_page (0);
+  if (file_name == NULL)
+    {
+      palloc_free_page (task_copy);
+      return TID_ERROR;
+    }
+  strlcpy (file_name, task, PGSIZE);
+  file_name = strtok_r (file_name, " \t", &save_ptr);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, task_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy);
+    {
+      palloc_free_page (task_copy);
+      palloc_free_page (file_name);
+    }
   return tid;
 }
 
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *file_name_)
+start_process (void *task)
 {
   const char delim[] = " \t";
   char *save_ptr;
   int argc = 0;
-  char *argv[strlen (file_name_) / 2 + 1];
+  char *argv[strlen (task) / 2 + 1];
   char *file_name;
   struct intr_frame if_;
   bool success;
 
   /* Parse FILE_NAME_, which is the first non-option argument, into
      a name of ELF file to be executed and its arguments. */
-  file_name = strtok_r (file_name_, delim, &save_ptr);
+  file_name = strtok_r (task, delim, &save_ptr);
   for (argv[argc] = file_name; argv[argc] != NULL;)
     argv[++argc] = strtok_r (NULL, delim, &save_ptr);
 
@@ -486,6 +503,10 @@ install_page (void *upage, void *kpage, bool writable)
 static void
 push_arguments_onto_stack (const int argc, const char *argv[], void **esp)
 {
+  ASSERT (argc >= 0);
+  ASSERT (argv != NULL);
+  ASSERT (esp != NULL);
+
   const uintptr_t WORD = 4;
   uintptr_t argv_addr[argc + 1];
 
