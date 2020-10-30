@@ -170,6 +170,7 @@ thread_create (const char *name, int priority,
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
   struct switch_threads_frame *sf;
+  struct process *pcb;
   tid_t tid;
 
   ASSERT (function != NULL);
@@ -197,6 +198,30 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
+
+#ifdef USERPROG
+  /* Create a process control block. */
+  pcb = palloc_get_page (PAL_ZERO);
+  if (pcb == NULL)
+    {
+      palloc_free_page (t);
+      return TID_ERROR;
+    }
+
+  pcb->pid = (pid_t) tid;
+  pcb->alive = true;
+  pcb->being_waited = false;
+  pcb->start_success = false;
+  pcb->exit_status = -1;
+  sema_init (&pcb->start, 0);
+  sema_init (&pcb->wait, 0);
+
+  /* Make a new thread points to its corresponding process control block. */
+  t->pcb = pcb;
+
+  /* Make current thread points to a process control block of a new thread. */
+  list_push_back (&thread_current ()->children, &pcb->elem);
+#endif
 
   /* Add to run queue. */
   thread_unblock (t);
@@ -463,6 +488,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+#ifdef USERPROG
+  /* Initialize a list of process control blocks of children.
+
+     Initialization must be done here because main thread can have children. */
+  list_init (&t->children);
+#endif
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
