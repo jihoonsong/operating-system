@@ -148,6 +148,9 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+
+  /* Print exit status. */
+  printf ("%s: exit(%d)\n", cur->name, cur->pcb->exit_status);
 }
 
 /* Sets up the CPU for running user code in the current
