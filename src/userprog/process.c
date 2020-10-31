@@ -35,7 +35,7 @@ process_execute (const char *task)
 
   /* Make a copy of TASK.
      Otherwise there's a race between the caller and load(). */
-  task_copy = palloc_get_page (0);
+  task_copy = palloc_get_page (PAL_USER);
   if (task_copy == NULL)
     return TID_ERROR;
   strlcpy (task_copy, task, PGSIZE);
@@ -45,7 +45,7 @@ process_execute (const char *task)
 
   /* Make a copy of TASK and parse it into ELF name.
      Otherwise there's a race between the caller and load(). */
-  file_name = palloc_get_page (0);
+  file_name = palloc_get_page (PAL_USER);
   if (file_name == NULL)
     {
       palloc_free_page (task_copy);
@@ -60,7 +60,9 @@ process_execute (const char *task)
     {
       palloc_free_page (task_copy);
       palloc_free_page (file_name);
+      return TID_ERROR;
     }
+
   return tid;
 }
 
@@ -75,6 +77,7 @@ start_process (void *task)
   char *argv[strlen (task) / 2 + 1];
   char *file_name;
   struct intr_frame if_;
+  struct thread *cur;
   bool success;
 
   /* Parse FILE_NAME_, which is the first non-option argument, into
@@ -90,12 +93,21 @@ start_process (void *task)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
+  /* Store load result to process control block. */
+  cur = thread_current ();
+  cur->pcb->start_success = success;
+
   /* Push arguments onto the stack. */
   if (success)
     push_arguments_onto_stack (argc, (const char **) argv, &if_.esp);
 
+  /* Release memory. */
+  palloc_free_page (task);
+
+  /* Signal that current thread has started its execution. */
+  sema_up (&cur->pcb->start);
+
   /* If load failed, quit. */
-  palloc_free_page (file_name);
   if (!success)
     thread_exit ();
 
@@ -121,7 +133,43 @@ start_process (void *task)
 int
 process_wait (tid_t child_tid UNUSED)
 {
-  return -1;
+  struct list *children = &thread_current ()->children;
+  struct process *child = NULL;
+  struct list_elem *element;
+  int exit_status;
+
+  /* Find a child of CHILD_TID. */
+  for (element = list_begin (children); element != list_end (children);
+       element = list_next (element))
+    {
+      struct process *child_ = list_entry (element, struct process, elem);
+      if (child_->pid == (pid_t) child_tid)
+        {
+          child = child_;
+          break;
+        }
+    }
+
+  /* The calling process can wait for only its direct child. */
+  if (child == NULL)
+    return -1;
+
+  /* Waiting more than once is invalid. */
+  if (child->being_waited)
+    return -1;
+
+  child->being_waited = true;
+
+  /* If child is still alive, wait until it terminates. */
+  if (child->alive)
+    sema_down (&child->wait);
+
+  /* Clean up child and return its exit status. */
+  exit_status = child->exit_status;
+  list_remove (element);
+  palloc_free_page (child);
+
+  return exit_status;
 }
 
 /* Free the current process's resources. */
@@ -130,6 +178,29 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  /* For each child, if child is alive set its ORPHAN to true.
+     If child is not alive, release its process control block. */
+  for (struct list_elem *element = list_begin (&cur->children);
+       element != list_end (&cur->children); element = list_next (element))
+    {
+      struct process *child = list_entry (element, struct process, elem);
+      if (child->alive)
+        child->orphan = true;
+      else
+        palloc_free_page (child);
+    }
+
+  /* Set current thread's ALIVE to false. */
+  cur->pcb->alive = false;
+
+  /* Signal that current thread exited. */
+  sema_up (&cur->pcb->wait);
+
+  /* If current thread is orphan, release its process control block.
+     Otherwise, it will be released when its parent calls wait() or exits. */
+  if (cur->pcb->orphan)
+    palloc_free_page (cur->pcb);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -147,6 +218,9 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+
+  /* Print exit status. */
+  printf ("%s: exit(%d)\n", cur->name, cur->pcb->exit_status);
 }
 
 /* Sets up the CPU for running user code in the current
