@@ -61,8 +61,26 @@
           retval;                                               \
         })
 
+/* Invokes syscall NUMBER, passing arguments ARG0, ARG1,
+   ARG2 and ARG3, and returns the return value as an `int'. */
+#define syscall4(NUMBER, ARG0, ARG1, ARG2, ARG3)                            \
+        ({                                                                  \
+          int retval;                                                       \
+          asm volatile                                                      \
+            ("pushl %[arg3]; pushl %[arg2]; pushl %[arg1]; pushl %[arg0]; " \
+             "pushl %[number]; int $0x30; addl $20, %%esp"                  \
+               : "=a" (retval)                                              \
+               : [number] "i" (NUMBER),                                     \
+                 [arg0] "r" (ARG0),                                         \
+                 [arg1] "r" (ARG1),                                         \
+                 [arg2] "r" (ARG2),                                         \
+                 [arg3] "r" (ARG3)                                          \
+               : "memory");                                                 \
+          retval;                                                           \
+        })
+
 void
-halt (void) 
+halt (void)
 {
   syscall0 (SYS_HALT);
   NOT_REACHED ();
@@ -106,7 +124,7 @@ open (const char *file)
 }
 
 int
-filesize (int fd) 
+filesize (int fd)
 {
   return syscall1 (SYS_FILESIZE, fd);
 }
@@ -124,13 +142,13 @@ write (int fd, const void *buffer, unsigned size)
 }
 
 void
-seek (int fd, unsigned position) 
+seek (int fd, unsigned position)
 {
   syscall2 (SYS_SEEK, fd, position);
 }
 
 unsigned
-tell (int fd) 
+tell (int fd)
 {
   return syscall1 (SYS_TELL, fd);
 }
@@ -139,6 +157,18 @@ void
 close (int fd)
 {
   syscall1 (SYS_CLOSE, fd);
+}
+
+int
+fibonacci (int n)
+{
+  return syscall1 (SYS_FIBONACCI, n);
+}
+
+int
+max_of_four_int (int a, int b, int c, int d)
+{
+  return syscall4 (SYS_MAXOFFOURINT, a, b, c, d);
 }
 
 mapid_t
@@ -166,19 +196,19 @@ mkdir (const char *dir)
 }
 
 bool
-readdir (int fd, char name[READDIR_MAX_LEN + 1]) 
+readdir (int fd, char name[READDIR_MAX_LEN + 1])
 {
   return syscall2 (SYS_READDIR, fd, name);
 }
 
 bool
-isdir (int fd) 
+isdir (int fd)
 {
   return syscall1 (SYS_ISDIR, fd);
 }
 
 int
-inumber (int fd) 
+inumber (int fd)
 {
   return syscall1 (SYS_INUMBER, fd);
 }

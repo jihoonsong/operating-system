@@ -20,6 +20,8 @@ static tid_t exec (const char *task);
 static int wait (tid_t tid);
 static int read (int fd, void *buffer, unsigned int size);
 static int write (int fd, const void *buffer, unsigned int size);
+static int fibonacci (int n);
+static int max_of_four_int (int a, int b, int c, int d);
 
 void
 syscall_init (void)
@@ -56,6 +58,15 @@ syscall_handler (struct intr_frame *f UNUSED)
         f->eax = write (*(int *) validate_ptr (f->esp + 4),
                         validate_ptr (f->esp + 8),
                         *(unsigned int *) validate_ptr (f->esp + 12));
+        break;
+      case SYS_FIBONACCI:
+        f->eax = fibonacci (*(int *) validate_ptr (f->esp + 4));
+        break;
+      case SYS_MAXOFFOURINT:
+        f->eax = max_of_four_int (*(int *) validate_ptr (f->esp + 4),
+                                  *(int *) validate_ptr (f->esp + 8),
+                                  *(int *) validate_ptr (f->esp + 12),
+                                  *(int *) validate_ptr (f->esp + 16));
         break;
       default:
         /* Invalid system call number. Terminate current process. */
@@ -199,4 +210,38 @@ write (int fd, const void *buffer, unsigned int size)
     }
 
   return -1;
+}
+
+/* Get n-th value of Fibonacci sequence. */
+static int
+fibonacci (int n)
+{
+  int fib = n;
+  int temp[2] = {0, 1};
+  for (int i = 2; i <= n; ++i)
+    {
+      fib = temp[0] + temp[1];
+      temp[0] = temp[1];
+      temp[1] = fib;
+    }
+
+  return fib;
+}
+
+/* Get maximum of four integers. */
+static int
+max_of_four_int (int a, int b, int c, int d)
+{
+  int max = a;
+
+  if (max < b)
+    max = b;
+
+  if (max < c)
+    max = c;
+
+  if (max < d)
+    max = d;
+
+  return max;
 }
