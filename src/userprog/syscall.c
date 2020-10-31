@@ -154,6 +154,8 @@ static int
 wait (tid_t tid)
 {
   ASSERT (tid >= 1);
+
+  return process_wait (tid);
 }
 
 /* Read from a file. */

@@ -226,6 +226,11 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+#ifdef USERPROG
+  /* Wait until a new thread starts its execution. */
+  sema_down (&pcb->start);
+#endif
+
   return tid;
 }
 
@@ -415,6 +420,7 @@ idle (void *idle_started_ UNUSED)
 {
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
+  sema_up (&idle_thread->pcb->start);
   sema_up (idle_started);
 
   for (;;)

@@ -101,6 +101,8 @@ start_process (void *task)
   if (!success)
     thread_exit ();
 
+  /* Signal that current thread has started its execution. */
+  sema_up (&thread_current ()->pcb->start);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -124,7 +126,43 @@ start_process (void *task)
 int
 process_wait (tid_t child_tid UNUSED)
 {
-  return -1;
+  struct list *children = &thread_current ()->children;
+  struct process *child = NULL;
+  struct list_elem *element;
+  int exit_status;
+
+  /* Find a child of CHILD_TID. */
+  for (element = list_begin (children); element != list_end (children);
+       element = list_next (element))
+    {
+      struct process *child_ = list_entry (element, struct process, elem);
+      if (child_->pid == (pid_t) child_tid)
+        {
+          child = child_;
+          break;
+        }
+    }
+
+  /* The calling process can wait for only its direct child. */
+  if (child == NULL)
+    return -1;
+
+  /* Waiting more than once is invalid. */
+  if (child->being_waited)
+    return -1;
+
+  child->being_waited = true;
+
+  /* If child is still alive, wait until it terminates. */
+  if (child->alive)
+    sema_down (&child->wait);
+
+  /* Clean up child and return its exit status. */
+  exit_status = child->exit_status;
+  list_remove (element);
+  palloc_free_page (child);
+
+  return exit_status;
 }
 
 /* Free the current process's resources. */
@@ -133,6 +171,10 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  // TODO: Implement process_exit. This is just a temporary code.
+  cur->pcb->alive = false;
+  sema_up (&cur->pcb->wait);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
