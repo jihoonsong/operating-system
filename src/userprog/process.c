@@ -77,6 +77,7 @@ start_process (void *task)
   char *argv[strlen (task) / 2 + 1];
   char *file_name;
   struct intr_frame if_;
+  struct thread *cur;
   bool success;
 
   /* Parse FILE_NAME_, which is the first non-option argument, into
@@ -92,17 +93,23 @@ start_process (void *task)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
 
+  /* Store load result to process control block. */
+  cur = thread_current ();
+  cur->pcb->start_success = success;
+
   /* Push arguments onto the stack. */
   if (success)
     push_arguments_onto_stack (argc, (const char **) argv, &if_.esp);
 
-  /* If load failed, quit. */
-  palloc_free_page (file_name);
-  if (!success)
-    thread_exit ();
+  /* Release memory. */
+  palloc_free_page (task);
 
   /* Signal that current thread has started its execution. */
-  sema_up (&thread_current ()->pcb->start);
+  sema_up (&cur->pcb->start);
+
+  /* If load failed, quit. */
+  if (!success)
+    thread_exit ();
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in

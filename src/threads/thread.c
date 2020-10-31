@@ -229,6 +229,14 @@ thread_create (const char *name, int priority,
 #ifdef USERPROG
   /* Wait until a new thread starts its execution. */
   sema_down (&pcb->start);
+
+  /* Check if its execution started successfully. */
+  if (!pcb->start_success)
+    {
+      palloc_free_page (t);
+      palloc_free_page (pcb);
+      return TID_ERROR;
+    }
 #endif
 
   return tid;
@@ -420,6 +428,7 @@ idle (void *idle_started_ UNUSED)
 {
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
+  idle_thread->pcb->start_success = true;
   sema_up (&idle_thread->pcb->start);
   sema_up (idle_started);
 
