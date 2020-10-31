@@ -35,7 +35,7 @@ process_execute (const char *task)
 
   /* Make a copy of TASK.
      Otherwise there's a race between the caller and load(). */
-  task_copy = palloc_get_page (0);
+  task_copy = palloc_get_page (PAL_USER);
   if (task_copy == NULL)
     return TID_ERROR;
   strlcpy (task_copy, task, PGSIZE);
@@ -45,7 +45,7 @@ process_execute (const char *task)
 
   /* Make a copy of TASK and parse it into ELF name.
      Otherwise there's a race between the caller and load(). */
-  file_name = palloc_get_page (0);
+  file_name = palloc_get_page (PAL_USER);
   if (file_name == NULL)
     {
       palloc_free_page (task_copy);
@@ -60,7 +60,9 @@ process_execute (const char *task)
     {
       palloc_free_page (task_copy);
       palloc_free_page (file_name);
+      return TID_ERROR;
     }
+
   return tid;
 }
 
