@@ -146,7 +146,12 @@ exec (const char *task)
 {
   ASSERT (task != NULL);
 
-  return process_execute (task);
+  void *buffer_indirect;
+  indirect_user (task, &buffer_indirect);
+
+  validate_ptr (buffer_indirect);
+
+  return process_execute (buffer_indirect);
 }
 
 /* Wait for a child process to die. */
@@ -186,6 +191,8 @@ write (int fd, const void *buffer, unsigned int size)
 
   void *buffer_indirect;
   indirect_user (buffer, &buffer_indirect);
+
+  validate_ptr (buffer_indirect);
 
   if (fd == STDOUT_FILENO)
     {
