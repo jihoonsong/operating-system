@@ -54,6 +54,14 @@ process_execute (const char *task)
   strlcpy (file_name, task, PGSIZE);
   file_name = strtok_r (file_name, " \t", &save_ptr);
 
+  /* If FILE_NAME is invalid, return TID_ERROR. */
+  if(filesys_open (file_name) == NULL)
+    {
+      palloc_free_page (task_copy);
+      palloc_free_page (file_name);
+      return TID_ERROR;
+    }
+
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, task_copy);
   if (tid == TID_ERROR)
