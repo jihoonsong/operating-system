@@ -167,7 +167,6 @@ wait (tid_t tid)
 static int
 read (int fd, void *buffer, unsigned int size)
 {
-  ASSERT (fd > 0);
   ASSERT (buffer != NULL);
 
   if (fd == STDIN_FILENO)
@@ -186,7 +185,6 @@ read (int fd, void *buffer, unsigned int size)
 static int
 write (int fd, const void *buffer, unsigned int size)
 {
-  ASSERT (fd > 0);
   ASSERT (buffer != NULL);
 
   void *buffer_indirect;
