@@ -172,9 +172,28 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
-  // TODO: Implement process_exit. This is just a temporary code.
+  /* For each child, if child is alive set its ORPHAN to true.
+     If child is not alive, release its process control block. */
+  for (struct list_elem *element = list_begin (&cur->children);
+       element != list_end (&cur->children); element = list_next (element))
+    {
+      struct process *child = list_entry (element, struct process, elem);
+      if (child->alive)
+        child->orphan = true;
+      else
+        palloc_free_page (child);
+    }
+
+  /* Set current thread's ALIVE to false. */
   cur->pcb->alive = false;
+
+  /* Signal that current thread exited. */
   sema_up (&cur->pcb->wait);
+
+  /* If current thread is orphan, release its process control block.
+     Otherwise, it will be released when its parent calls wait() or exits. */
+  if (cur->pcb->orphan)
+    palloc_free_page (cur->pcb);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
