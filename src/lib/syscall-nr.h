@@ -2,7 +2,7 @@
 #define __LIB_SYSCALL_NR_H
 
 /* System call numbers. */
-enum 
+enum
   {
     /* Projects 2 and later. */
     SYS_HALT,                   /* Halt the operating system. */
@@ -18,6 +18,8 @@ enum
     SYS_SEEK,                   /* Change position in a file. */
     SYS_TELL,                   /* Report current position in a file. */
     SYS_CLOSE,                  /* Close a file. */
+    SYS_FIBONACCI,              /* Get n-th value of Fibonacci sequence. */
+    SYS_MAXOFFOURINT,           /* Get maximum of four integers. */
 
     /* Project 3 and optionally project 4. */
     SYS_MMAP,                   /* Map a file into memory. */
