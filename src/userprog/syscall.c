@@ -18,8 +18,15 @@ static void halt (void);
 static void exit (int status);
 static tid_t exec (const char *task);
 static int wait (tid_t tid);
+static bool create (const char *file, unsigned initial_size);
+static bool remove (const char *file);
+static int open (const char *file);
+static int filesize (int fd);
 static int read (int fd, void *buffer, unsigned int size);
 static int write (int fd, const void *buffer, unsigned int size);
+static void seek (int fd, unsigned position);
+static unsigned tell (int fd);
+static void close (int fd);
 static int fibonacci (int n);
 static int max_of_four_int (int a, int b, int c, int d);
 
@@ -49,6 +56,19 @@ syscall_handler (struct intr_frame *f UNUSED)
       case SYS_WAIT:
         f->eax = wait (*(tid_t *) validate_ptr (f->esp + 4));
         break;
+      case SYS_CREATE:
+        f->eax = create (validate_ptr (f->esp + 4),
+                         *(unsigned int *) validate_ptr (f->esp + 8));
+        break;
+      case SYS_REMOVE:
+        f->eax = remove (validate_ptr (f->esp + 4));
+        break;
+      case SYS_OPEN:
+        f->eax = open (validate_ptr (f->esp + 4));
+        break;
+      case SYS_FILESIZE:
+        f->eax = filesize (*(int *) validate_ptr (f->esp + 4));
+        break;
       case SYS_READ:
         f->eax = read (*(int *) validate_ptr (f->esp + 4),
                        validate_ptr (f->esp + 8),
@@ -58,6 +78,16 @@ syscall_handler (struct intr_frame *f UNUSED)
         f->eax = write (*(int *) validate_ptr (f->esp + 4),
                         validate_ptr (f->esp + 8),
                         *(unsigned int *) validate_ptr (f->esp + 12));
+        break;
+      case SYS_SEEK:
+        seek (*(int *) validate_ptr (f->esp + 4),
+              *(unsigned int *) validate_ptr (f->esp + 8));
+        break;
+      case SYS_TELL:
+        f->eax = tell (*(int *) validate_ptr (f->esp + 4));
+        break;
+      case SYS_CLOSE:
+        close (*(int *) validate_ptr (f->esp + 4));
         break;
       case SYS_FIBONACCI:
         f->eax = fibonacci (*(int *) validate_ptr (f->esp + 4));
@@ -174,6 +204,37 @@ wait (tid_t tid)
   return process_wait (tid);
 }
 
+/* Create a file. */
+bool
+create (const char *file, unsigned initial_size)
+{
+  // TODO: Implement.
+  ASSERT (file != NULL);
+}
+
+/* Delete a file. */
+bool
+remove (const char *file)
+{
+  // TODO: Implement.
+  ASSERT (file != NULL);
+}
+
+/* Open a file. */
+int
+open (const char *file)
+{
+  // TODO: Implement.
+  ASSERT (file != NULL);
+}
+
+/* Obtain a file's size. */
+int
+filesize (int fd)
+{
+  // TODO: Implement.
+}
+
 /* Read from a file. */
 static int
 read (int fd, void *buffer, unsigned int size)
@@ -210,6 +271,27 @@ write (int fd, const void *buffer, unsigned int size)
     }
 
   return -1;
+}
+
+/* Change position in a file. */
+void
+seek (int fd, unsigned position)
+{
+  // TODO: Implement.
+}
+
+/* Report current position in a file. */
+unsigned
+tell (int fd)
+{
+  // TODO: Implement.
+}
+
+/* Close a file. */
+void
+close (int fd)
+{
+  // TODO: Implement.
 }
 
 /* Get n-th value of Fibonacci sequence. */
