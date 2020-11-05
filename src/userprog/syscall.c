@@ -7,6 +7,7 @@
 #include "filesys/filesys.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "userprog/process.h"
 
@@ -32,10 +33,13 @@ static void close (int fd);
 static int fibonacci (int n);
 static int max_of_four_int (int a, int b, int c, int d);
 
+static struct lock filesys_lock;
+
 void
 syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init (&filesys_lock);
 }
 
 static void
@@ -179,6 +183,9 @@ halt (void)
 static void
 exit (int status)
 {
+  if (lock_held_by_current_thread (&filesys_lock))
+    lock_release (&filesys_lock);
+
   thread_current ()->pcb->exit_status = status;
   thread_exit ();
 }
