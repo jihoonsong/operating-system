@@ -3,6 +3,8 @@
 #include <syscall-nr.h>
 #include "devices/input.h"
 #include "devices/shutdown.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
@@ -208,8 +210,14 @@ wait (tid_t tid)
 bool
 create (const char *file, unsigned initial_size)
 {
-  // TODO: Implement.
   ASSERT (file != NULL);
+
+  void *file_indirect;
+  indirect_user (file, &file_indirect);
+
+  validate_ptr (file_indirect);
+
+  return filesys_create (file_indirect, initial_size);
 }
 
 /* Delete a file. */
