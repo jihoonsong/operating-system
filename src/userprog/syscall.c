@@ -3,8 +3,11 @@
 #include <syscall-nr.h>
 #include "devices/input.h"
 #include "devices/shutdown.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "userprog/process.h"
 
@@ -18,15 +21,25 @@ static void halt (void);
 static void exit (int status);
 static tid_t exec (const char *task);
 static int wait (tid_t tid);
+static bool create (const char *file, unsigned initial_size);
+static bool remove (const char *file);
+static int open (const char *file);
+static int filesize (int fd);
 static int read (int fd, void *buffer, unsigned int size);
 static int write (int fd, const void *buffer, unsigned int size);
+static void seek (int fd, unsigned position);
+static unsigned tell (int fd);
+static void close (int fd);
 static int fibonacci (int n);
 static int max_of_four_int (int a, int b, int c, int d);
+
+static struct lock filesys_lock;
 
 void
 syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init (&filesys_lock);
 }
 
 static void
@@ -49,6 +62,19 @@ syscall_handler (struct intr_frame *f UNUSED)
       case SYS_WAIT:
         f->eax = wait (*(tid_t *) validate_ptr (f->esp + 4));
         break;
+      case SYS_CREATE:
+        f->eax = create (validate_ptr (f->esp + 4),
+                         *(unsigned int *) validate_ptr (f->esp + 8));
+        break;
+      case SYS_REMOVE:
+        f->eax = remove (validate_ptr (f->esp + 4));
+        break;
+      case SYS_OPEN:
+        f->eax = open (validate_ptr (f->esp + 4));
+        break;
+      case SYS_FILESIZE:
+        f->eax = filesize (*(int *) validate_ptr (f->esp + 4));
+        break;
       case SYS_READ:
         f->eax = read (*(int *) validate_ptr (f->esp + 4),
                        validate_ptr (f->esp + 8),
@@ -58,6 +84,16 @@ syscall_handler (struct intr_frame *f UNUSED)
         f->eax = write (*(int *) validate_ptr (f->esp + 4),
                         validate_ptr (f->esp + 8),
                         *(unsigned int *) validate_ptr (f->esp + 12));
+        break;
+      case SYS_SEEK:
+        seek (*(int *) validate_ptr (f->esp + 4),
+              *(unsigned int *) validate_ptr (f->esp + 8));
+        break;
+      case SYS_TELL:
+        f->eax = tell (*(int *) validate_ptr (f->esp + 4));
+        break;
+      case SYS_CLOSE:
+        close (*(int *) validate_ptr (f->esp + 4));
         break;
       case SYS_FIBONACCI:
         f->eax = fibonacci (*(int *) validate_ptr (f->esp + 4));
@@ -147,6 +183,9 @@ halt (void)
 static void
 exit (int status)
 {
+  if (lock_held_by_current_thread (&filesys_lock))
+    lock_release (&filesys_lock);
+
   thread_current ()->pcb->exit_status = status;
   thread_exit ();
 }
@@ -172,6 +211,47 @@ wait (tid_t tid)
   ASSERT (tid >= 1);
 
   return process_wait (tid);
+}
+
+/* Create a file. */
+bool
+create (const char *file, unsigned initial_size)
+{
+  ASSERT (file != NULL);
+
+  void *file_indirect;
+  indirect_user (file, &file_indirect);
+
+  validate_ptr (file_indirect);
+
+  lock_acquire (&filesys_lock);
+  bool success = filesys_create (file_indirect, initial_size);
+  lock_release (&filesys_lock);
+
+  return success;
+}
+
+/* Delete a file. */
+bool
+remove (const char *file)
+{
+  // TODO: Implement.
+  ASSERT (file != NULL);
+}
+
+/* Open a file. */
+int
+open (const char *file)
+{
+  // TODO: Implement.
+  ASSERT (file != NULL);
+}
+
+/* Obtain a file's size. */
+int
+filesize (int fd)
+{
+  // TODO: Implement.
 }
 
 /* Read from a file. */
@@ -210,6 +290,27 @@ write (int fd, const void *buffer, unsigned int size)
     }
 
   return -1;
+}
+
+/* Change position in a file. */
+void
+seek (int fd, unsigned position)
+{
+  // TODO: Implement.
+}
+
+/* Report current position in a file. */
+unsigned
+tell (int fd)
+{
+  // TODO: Implement.
+}
+
+/* Close a file. */
+void
+close (int fd)
+{
+  // TODO: Implement.
 }
 
 /* Get n-th value of Fibonacci sequence. */
