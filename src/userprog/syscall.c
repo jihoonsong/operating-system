@@ -224,7 +224,11 @@ create (const char *file, unsigned initial_size)
 
   validate_ptr (file_indirect);
 
-  return filesys_create (file_indirect, initial_size);
+  lock_acquire (&filesys_lock);
+  bool success = filesys_create (file_indirect, initial_size);
+  lock_release (&filesys_lock);
+
+  return success;
 }
 
 /* Delete a file. */
