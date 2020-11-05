@@ -166,8 +166,15 @@ put_user (uint8_t *udst, uint8_t byte)
 static void *
 validate_ptr (void *ptr)
 {
-  if (ptr == NULL || ptr >= PHYS_BASE || get_user (ptr) == -1)
+  if (ptr == NULL)
     exit (-1);
+
+  if (!is_user_vaddr (ptr))
+    exit (-1);
+
+  for (size_t i = 0; i < sizeof ptr; ++i)
+    if (get_user (ptr + i) == -1)
+      exit (-1);
 
   return ptr;
 }
