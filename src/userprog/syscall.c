@@ -15,6 +15,7 @@ static int get_user (const uint8_t *uaddr);
 static void indirect_user (const void *uptr, void *uindirect);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static void *validate_ptr (void *ptr);
+static int allocate_fd (void);
 
 static void syscall_handler (struct intr_frame *);
 static void halt (void);
@@ -179,6 +180,19 @@ validate_ptr (void *ptr)
   return ptr;
 }
 
+/* Returns a file descriptor to use for a new file. */
+static int
+allocate_fd (void)
+{
+  static int next_fd = 2; // 0 is STDIN_FILENO and 1 is STDOUT_FILENO.
+  int fd;
+
+  lock_acquire (&filesys_lock);
+  fd = next_fd++;
+  lock_release (&filesys_lock);
+
+  return fd;
+}
 /* Halt the operating system. */
 static void
 halt (void)
