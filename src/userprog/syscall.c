@@ -21,9 +21,9 @@ static void halt (void);
 static void exit (int status);
 static tid_t exec (const char *task);
 static int wait (tid_t tid);
-static bool create (const char *file, unsigned initial_size);
-static bool remove (const char *file);
-static int open (const char *file);
+static bool create (const char *filename, unsigned initial_size);
+static bool remove (const char *filename);
+static int open (const char *filename);
 static int filesize (int fd);
 static int read (int fd, void *buffer, unsigned int size);
 static int write (int fd, const void *buffer, unsigned int size);
@@ -222,17 +222,17 @@ wait (tid_t tid)
 
 /* Create a file. */
 bool
-create (const char *file, unsigned initial_size)
+create (const char *filename, unsigned initial_size)
 {
-  ASSERT (file != NULL);
+  ASSERT (filename != NULL);
 
-  void *file_indirect;
-  indirect_user (file, &file_indirect);
+  void *filename_indirect;
+  indirect_user (filename, &filename_indirect);
 
-  validate_ptr (file_indirect);
+  validate_ptr (filename_indirect);
 
   lock_acquire (&filesys_lock);
-  bool success = filesys_create (file_indirect, initial_size);
+  bool success = filesys_create (filename_indirect, initial_size);
   lock_release (&filesys_lock);
 
   return success;
@@ -240,18 +240,18 @@ create (const char *file, unsigned initial_size)
 
 /* Delete a file. */
 bool
-remove (const char *file)
+remove (const char *filename)
 {
   // TODO: Implement.
-  ASSERT (file != NULL);
+  ASSERT (filename != NULL);
 }
 
 /* Open a file. */
 int
-open (const char *file)
+open (const char *filename)
 {
   // TODO: Implement.
-  ASSERT (file != NULL);
+  ASSERT (filename != NULL);
 }
 
 /* Obtain a file's size. */
