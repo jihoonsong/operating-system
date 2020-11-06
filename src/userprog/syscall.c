@@ -15,15 +15,16 @@ static int get_user (const uint8_t *uaddr);
 static void indirect_user (const void *uptr, void *uindirect);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static void *validate_ptr (void *ptr);
+static int allocate_fd (void);
 
 static void syscall_handler (struct intr_frame *);
 static void halt (void);
 static void exit (int status);
 static tid_t exec (const char *task);
 static int wait (tid_t tid);
-static bool create (const char *file, unsigned initial_size);
-static bool remove (const char *file);
-static int open (const char *file);
+static bool create (const char *filename, unsigned initial_size);
+static bool remove (const char *filename);
+static int open (const char *filename);
 static int filesize (int fd);
 static int read (int fd, void *buffer, unsigned int size);
 static int write (int fd, const void *buffer, unsigned int size);
@@ -179,6 +180,19 @@ validate_ptr (void *ptr)
   return ptr;
 }
 
+/* Returns a file descriptor to use for a new file. */
+static int
+allocate_fd (void)
+{
+  static int next_fd = 2; // 0 is STDIN_FILENO and 1 is STDOUT_FILENO.
+  int fd;
+
+  lock_acquire (&filesys_lock);
+  fd = next_fd++;
+  lock_release (&filesys_lock);
+
+  return fd;
+}
 /* Halt the operating system. */
 static void
 halt (void)
@@ -222,17 +236,17 @@ wait (tid_t tid)
 
 /* Create a file. */
 bool
-create (const char *file, unsigned initial_size)
+create (const char *filename, unsigned initial_size)
 {
-  ASSERT (file != NULL);
+  ASSERT (filename != NULL);
 
-  void *file_indirect;
-  indirect_user (file, &file_indirect);
+  void *filename_indirect;
+  indirect_user (filename, &filename_indirect);
 
-  validate_ptr (file_indirect);
+  validate_ptr (filename_indirect);
 
   lock_acquire (&filesys_lock);
-  bool success = filesys_create (file_indirect, initial_size);
+  bool success = filesys_create (filename_indirect, initial_size);
   lock_release (&filesys_lock);
 
   return success;
@@ -240,18 +254,34 @@ create (const char *file, unsigned initial_size)
 
 /* Delete a file. */
 bool
-remove (const char *file)
+remove (const char *filename)
 {
   // TODO: Implement.
-  ASSERT (file != NULL);
+  ASSERT (filename != NULL);
 }
 
 /* Open a file. */
 int
-open (const char *file)
+open (const char *filename)
 {
-  // TODO: Implement.
-  ASSERT (file != NULL);
+  ASSERT (filename != NULL);
+
+  void *filename_indirect;
+  indirect_user (filename, &filename_indirect);
+
+  validate_ptr (filename_indirect);
+
+  lock_acquire (&filesys_lock);
+  struct file *file = filesys_open (filename_indirect);
+  lock_release (&filesys_lock);
+
+  if (file == NULL)
+    return -1;
+
+  file->fd = allocate_fd ();
+  list_push_back (&thread_current ()->files, file);
+
+  return file->fd;
 }
 
 /* Obtain a file's size. */
