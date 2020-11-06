@@ -279,7 +279,7 @@ open (const char *filename)
     return -1;
 
   file->fd = allocate_fd ();
-  list_push_back (&thread_current ()->files, file);
+  list_push_back (&thread_current ()->files, &file->elem);
 
   return file->fd;
 }
