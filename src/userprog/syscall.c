@@ -264,8 +264,24 @@ remove (const char *filename)
 int
 open (const char *filename)
 {
-  // TODO: Implement.
   ASSERT (filename != NULL);
+
+  void *filename_indirect;
+  indirect_user (filename, &filename_indirect);
+
+  validate_ptr (filename_indirect);
+
+  lock_acquire (&filesys_lock);
+  struct file *file = filesys_open (filename_indirect);
+  lock_release (&filesys_lock);
+
+  if (file == NULL)
+    return -1;
+
+  file->fd = allocate_fd ();
+  list_push_back (&thread_current ()->files, file);
+
+  return file->fd;
 }
 
 /* Obtain a file's size. */
