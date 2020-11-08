@@ -186,7 +186,11 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   int exit_status = cur->pcb->exit_status;
+  struct lock filesys_lock;
   uint32_t *pd;
+
+  /* Initialize a file system lock. */
+  lock_init (&filesys_lock);
 
   /* For each child, if child is alive set its ORPHAN to true.
      If child is not alive, release its process control block. */
@@ -206,9 +210,25 @@ process_exit (void)
   /* Signal that current thread exited. */
   sema_up (&cur->pcb->wait);
 
-  /* Allow writing on the loaded ELF executable. */
+  /* Allow writing on the loaded ELF executable and close it. */
   if (cur->elf_executable != NULL)
+  {
     file_allow_write (cur->elf_executable);
+
+    lock_acquire (&filesys_lock);
+    file_close (cur->elf_executable);
+    lock_release (&filesys_lock);
+  }
+
+  /* Close all opened files. */
+  for (struct list_elem *element = list_begin (&cur->files);
+       element != list_end (&cur->files); element = list_next (element))
+    {
+      struct file *file = list_entry (element, struct file, elem);
+      lock_acquire (&filesys_lock);
+      file_close (file);
+      lock_release (&filesys_lock);
+    }
 
   /* If current thread is orphan, release its process control block.
      Otherwise, it will be released when its parent calls wait() or exits. */
