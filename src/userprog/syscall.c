@@ -307,16 +307,48 @@ read (int fd, void *buffer, unsigned int size)
 {
   ASSERT (buffer != NULL);
 
+  void *buffer_indirect;
+  indirect_user (buffer, &buffer_indirect);
+
+  validate_ptr (buffer_indirect);
+
   if (fd == STDIN_FILENO)
     {
+      lock_acquire (&filesys_lock);
       for (unsigned int i = 0; i < size; ++i)
-        if (!put_user (buffer + i, input_getc ()))
+        if (!put_user (buffer_indirect + i, input_getc ()))
           exit (-1);
+      lock_release (&filesys_lock);
 
       return size;
     }
 
-  return -1;
+  struct list *files = &thread_current ()->files;
+  struct file *file = NULL;
+  struct list_elem *element;
+
+  /* Find a file of FD. */
+  for (element = list_begin (files); element != list_end (files);
+       element = list_next (element))
+    {
+      struct file *file_ = list_entry (element, struct file, elem);
+      if (file_->fd == fd)
+        {
+          file = file_;
+          break;
+        }
+    }
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return 0;
+
+  /* Read SIZE bytes from FILE to BUFFER. */
+  lock_acquire (&filesys_lock);
+  int bytes_read = (int) file_read (file, buffer_indirect, size);
+  lock_release (&filesys_lock);
+
+  return bytes_read;
 }
 
 /* Write to a file. */
@@ -335,7 +367,7 @@ write (int fd, const void *buffer, unsigned int size)
       lock_acquire (&filesys_lock);
       putbuf (buffer_indirect, size);
       lock_release (&filesys_lock);
-    
+
       return size;
     }
 
