@@ -16,6 +16,7 @@ static void indirect_user (const void *uptr, void *uindirect);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static void *validate_ptr (void *ptr);
 static int allocate_fd (void);
+static struct file *find_file_by_fd (struct list *files, const int fd);
 
 static void syscall_handler (struct intr_frame *);
 static void halt (void);
@@ -193,6 +194,24 @@ allocate_fd (void)
 
   return fd;
 }
+
+/* Returns a file corresponding to FD. */
+static struct file *
+find_file_by_fd (struct list *files, const int fd)
+{
+  struct file *file = NULL;
+
+  for (struct list_elem *element = list_begin (files);
+       element != list_end (files); element = list_next (element))
+    {
+      file = list_entry (element, struct file, elem);
+      if (file->fd == fd)
+        break;
+    }
+
+  return file;
+}
+
 /* Halt the operating system. */
 static void
 halt (void)
