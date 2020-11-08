@@ -185,6 +185,7 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
+  int exit_status = cur->pcb->exit_status;
   uint32_t *pd;
 
   /* For each child, if child is alive set its ORPHAN to true.
@@ -228,7 +229,7 @@ process_exit (void)
     }
 
   /* Print exit status. */
-  printf ("%s: exit(%d)\n", cur->name, cur->pcb->exit_status);
+  printf ("%s: exit(%d)\n", cur->name, exit_status);
 }
 
 /* Sets up the CPU for running user code in the current
