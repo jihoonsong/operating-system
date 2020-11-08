@@ -16,6 +16,8 @@ static void indirect_user (const void *uptr, void *uindirect);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static void *validate_ptr (void *ptr);
 static int allocate_fd (void);
+static struct file *find_file_by_fd (struct list *files, const int fd);
+static void remove_file_by_fd (struct list *files, const int fd);
 
 static void syscall_handler (struct intr_frame *);
 static void halt (void);
@@ -193,6 +195,40 @@ allocate_fd (void)
 
   return fd;
 }
+
+/* Returns a file corresponding to FD. */
+static struct file *
+find_file_by_fd (struct list *files, const int fd)
+{
+  struct file *file = NULL;
+
+  for (struct list_elem *element = list_begin (files);
+       element != list_end (files); element = list_next (element))
+    {
+      file = list_entry (element, struct file, elem);
+      if (file->fd == fd)
+        break;
+    }
+
+  return file;
+}
+
+/* Remove a file corresponding to FD. */
+static void
+remove_file_by_fd (struct list *files, const int fd)
+{
+  for (struct list_elem *element = list_begin (files);
+       element != list_end (files); element = list_next (element))
+    {
+      struct file *file = list_entry (element, struct file, elem);
+      if (file->fd == fd)
+        {
+          list_remove (element);
+          return;
+        }
+    }
+}
+
 /* Halt the operating system. */
 static void
 halt (void)
@@ -219,7 +255,6 @@ exec (const char *task)
 
   void *buffer_indirect;
   indirect_user (task, &buffer_indirect);
-
   validate_ptr (buffer_indirect);
 
   return process_execute (buffer_indirect);
@@ -242,7 +277,6 @@ create (const char *filename, unsigned initial_size)
 
   void *filename_indirect;
   indirect_user (filename, &filename_indirect);
-
   validate_ptr (filename_indirect);
 
   lock_acquire (&filesys_lock);
@@ -260,7 +294,6 @@ remove (const char *filename)
 
   void *filename_indirect;
   indirect_user (filename, &filename_indirect);
-
   validate_ptr (filename_indirect);
 
   lock_acquire (&filesys_lock);
@@ -278,7 +311,6 @@ open (const char *filename)
 
   void *filename_indirect;
   indirect_user (filename, &filename_indirect);
-
   validate_ptr (filename_indirect);
 
   lock_acquire (&filesys_lock);
@@ -298,21 +330,8 @@ open (const char *filename)
 int
 filesize (int fd)
 {
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -334,7 +353,6 @@ read (int fd, void *buffer, unsigned int size)
 
   void *buffer_indirect;
   indirect_user (buffer, &buffer_indirect);
-
   validate_ptr (buffer_indirect);
 
   if (fd == STDIN_FILENO)
@@ -348,21 +366,8 @@ read (int fd, void *buffer, unsigned int size)
       return size;
     }
 
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -384,7 +389,6 @@ write (int fd, const void *buffer, unsigned int size)
 
   void *buffer_indirect;
   indirect_user (buffer, &buffer_indirect);
-
   validate_ptr (buffer_indirect);
 
   if (fd == STDOUT_FILENO)
@@ -396,21 +400,8 @@ write (int fd, const void *buffer, unsigned int size)
       return size;
     }
 
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -428,21 +419,8 @@ write (int fd, const void *buffer, unsigned int size)
 void
 seek (int fd, unsigned position)
 {
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -459,21 +437,8 @@ seek (int fd, unsigned position)
 unsigned
 tell (int fd)
 {
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -491,21 +456,8 @@ tell (int fd)
 void
 close (int fd)
 {
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -513,7 +465,7 @@ close (int fd)
 
   /* Remove the file from a list of files and close the file. */
   lock_acquire (&filesys_lock);
-  list_remove (element);
+  remove_file_by_fd (&thread_current ()->files, fd);
   file_close (file);
   lock_release (&filesys_lock);
 }
