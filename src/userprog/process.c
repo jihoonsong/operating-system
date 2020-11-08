@@ -185,6 +185,7 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
+  int exit_status = cur->pcb->exit_status;
   uint32_t *pd;
 
   /* For each child, if child is alive set its ORPHAN to true.
@@ -204,6 +205,9 @@ process_exit (void)
 
   /* Signal that current thread exited. */
   sema_up (&cur->pcb->wait);
+
+  /* Print exit status. */
+  printf ("%s: exit(%d)\n", cur->name, exit_status);
 
   /* If current thread is orphan, release its process control block.
      Otherwise, it will be released when its parent calls wait() or exits. */
@@ -226,9 +230,6 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
-
-  /* Print exit status. */
-  printf ("%s: exit(%d)\n", cur->name, cur->pcb->exit_status);
 }
 
 /* Sets up the CPU for running user code in the current
