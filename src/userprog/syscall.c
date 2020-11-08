@@ -332,11 +332,38 @@ write (int fd, const void *buffer, unsigned int size)
 
   if (fd == STDOUT_FILENO)
     {
+      lock_acquire (&filesys_lock);
       putbuf (buffer_indirect, size);
+      lock_release (&filesys_lock);
       return size;
     }
 
-  return -1;
+  struct list *files = &thread_current ()->files;
+  struct file *file = NULL;
+  struct list_elem *element;
+
+  /* Find a file of FD. */
+  for (element = list_begin (files); element != list_end (files);
+       element = list_next (element))
+    {
+      struct file *file_ = list_entry (element, struct file, elem);
+      if (file_->fd == fd)
+        {
+          file = file_;
+          break;
+        }
+    }
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return 0;
+
+  /* Write SIZE bytes from BUFFER to FILE.*/
+  lock_acquire (&filesys_lock);
+  int bytes_written = (int) file_write (file, buffer_indirect, size);
+  lock_release (&filesys_lock);
+
+  return bytes_written;
 }
 
 /* Change position in a file. */
