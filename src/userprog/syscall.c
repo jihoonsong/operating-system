@@ -17,6 +17,7 @@ static bool put_user (uint8_t *udst, uint8_t byte);
 static void *validate_ptr (void *ptr);
 static int allocate_fd (void);
 static struct file *find_file_by_fd (struct list *files, const int fd);
+static void remove_file_by_fd (struct list *files, const int fd);
 
 static void syscall_handler (struct intr_frame *);
 static void halt (void);
@@ -210,6 +211,22 @@ find_file_by_fd (struct list *files, const int fd)
     }
 
   return file;
+}
+
+/* Remove a file corresponding to FD. */
+static void
+remove_file_by_fd (struct list *files, const int fd)
+{
+  for (struct list_elem *element = list_begin (files);
+       element != list_end (files); element = list_next (element))
+    {
+      struct file *file = list_entry (element, struct file, elem);
+      if (file->fd == fd)
+        {
+          list_remove (element);
+          return;
+        }
+    }
 }
 
 /* Halt the operating system. */
