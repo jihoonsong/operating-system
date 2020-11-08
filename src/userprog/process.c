@@ -186,7 +186,11 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   int exit_status = cur->pcb->exit_status;
+  struct lock filesys_lock;
   uint32_t *pd;
+
+  /* Initialize a file system lock. */
+  lock_init (&filesys_lock);
 
   /* For each child, if child is alive set its ORPHAN to true.
      If child is not alive, release its process control block. */
@@ -205,6 +209,27 @@ process_exit (void)
 
   /* Signal that current thread exited. */
   sema_up (&cur->pcb->wait);
+
+  /* Allow writing on the loaded ELF executable and close it. */
+  if (cur->elf_executable != NULL)
+  {
+    file_allow_write (cur->elf_executable);
+
+    lock_acquire (&filesys_lock);
+    file_close (cur->elf_executable);
+    lock_release (&filesys_lock);
+  }
+
+  /* Close all opened files. */
+  while (!list_empty (&cur->files))
+  {
+    struct list_elem *element = list_pop_front (&cur->files);
+    struct file *file = list_entry (element, struct file, elem);
+
+    lock_acquire (&filesys_lock);
+    file_close (file);
+    lock_release (&filesys_lock);
+  }
 
   /* Print exit status. */
   printf ("%s: exit(%d)\n", cur->name, exit_status);
@@ -424,11 +449,19 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
+  /* Deny writing on the loaded ELF executable. */
+  file_deny_write (file);
+
+  /* Remember the loaded ELF executable. */
+  t->elf_executable = file;
+
   success = true;
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  if (!success)
+    file_close (file);
+
   return success;
 }
 
