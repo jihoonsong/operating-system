@@ -428,7 +428,31 @@ write (int fd, const void *buffer, unsigned int size)
 void
 seek (int fd, unsigned position)
 {
-  // TODO: Implement.
+  struct list *files = &thread_current ()->files;
+  struct file *file = NULL;
+  struct list_elem *element;
+
+  /* Find a file of FD. */
+  for (element = list_begin (files); element != list_end (files);
+       element = list_next (element))
+    {
+      struct file *file_ = list_entry (element, struct file, elem);
+      if (file_->fd == fd)
+        {
+          file = file_;
+          break;
+        }
+    }
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return;
+
+  /* Sets the current position in FILE to POSITION bytes from the
+     start of the file. */
+  lock_acquire (&filesys_lock);
+  file_seek (file, (off_t) position);
+  lock_release (&filesys_lock);
 }
 
 /* Report current position in a file. */
