@@ -238,7 +238,6 @@ exec (const char *task)
 
   void *buffer_indirect;
   indirect_user (task, &buffer_indirect);
-
   validate_ptr (buffer_indirect);
 
   return process_execute (buffer_indirect);
@@ -261,7 +260,6 @@ create (const char *filename, unsigned initial_size)
 
   void *filename_indirect;
   indirect_user (filename, &filename_indirect);
-
   validate_ptr (filename_indirect);
 
   lock_acquire (&filesys_lock);
@@ -279,7 +277,6 @@ remove (const char *filename)
 
   void *filename_indirect;
   indirect_user (filename, &filename_indirect);
-
   validate_ptr (filename_indirect);
 
   lock_acquire (&filesys_lock);
@@ -297,7 +294,6 @@ open (const char *filename)
 
   void *filename_indirect;
   indirect_user (filename, &filename_indirect);
-
   validate_ptr (filename_indirect);
 
   lock_acquire (&filesys_lock);
@@ -353,7 +349,6 @@ read (int fd, void *buffer, unsigned int size)
 
   void *buffer_indirect;
   indirect_user (buffer, &buffer_indirect);
-
   validate_ptr (buffer_indirect);
 
   if (fd == STDIN_FILENO)
@@ -403,7 +398,6 @@ write (int fd, const void *buffer, unsigned int size)
 
   void *buffer_indirect;
   indirect_user (buffer, &buffer_indirect);
-
   validate_ptr (buffer_indirect);
 
   if (fd == STDOUT_FILENO)
