@@ -256,8 +256,18 @@ create (const char *filename, unsigned initial_size)
 bool
 remove (const char *filename)
 {
-  // TODO: Implement.
   ASSERT (filename != NULL);
+
+  void *filename_indirect;
+  indirect_user (filename, &filename_indirect);
+
+  validate_ptr (filename_indirect);
+
+  lock_acquire (&filesys_lock);
+  bool success = filesys_remove (filename_indirect);
+  lock_release (&filesys_lock);
+
+  return success;
 }
 
 /* Open a file. */
