@@ -298,7 +298,32 @@ open (const char *filename)
 int
 filesize (int fd)
 {
-  // TODO: Implement.
+  struct list *files = &thread_current ()->files;
+  struct file *file = NULL;
+  struct list_elem *element;
+
+  /* Find a file of FD. */
+  for (element = list_begin (files); element != list_end (files);
+       element = list_next (element))
+    {
+      struct file *file_ = list_entry (element, struct file, elem);
+      if (file_->fd == fd)
+        {
+          file = file_;
+          break;
+        }
+    }
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return 0;
+
+  /* Get the size of FILE in bytes. */
+  lock_acquire (&filesys_lock);
+  int length = (int) file_length (file);
+  lock_release (&filesys_lock);
+
+  return length;
 }
 
 /* Read from a file. */
