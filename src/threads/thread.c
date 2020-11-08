@@ -505,12 +505,14 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 
 #ifdef USERPROG
-  /* Initialize a list of process control blocks of children and files.
+  /* Initialize a list of process control blocks of children and files
+     and a pointer to the ELF executable.
 
      Initialization must be done here because even main thread can have
-     children open files. */
+     children and open files. Only main thread doesn't have ELF executable. */
   list_init (&t->children);
   list_init (&t->files);
+  t->elf_executable = NULL;
 #endif
 
   old_level = intr_disable ();
