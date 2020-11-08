@@ -330,21 +330,8 @@ open (const char *filename)
 int
 filesize (int fd)
 {
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -379,21 +366,8 @@ read (int fd, void *buffer, unsigned int size)
       return size;
     }
 
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -426,21 +400,8 @@ write (int fd, const void *buffer, unsigned int size)
       return size;
     }
 
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -458,21 +419,8 @@ write (int fd, const void *buffer, unsigned int size)
 void
 seek (int fd, unsigned position)
 {
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -489,21 +437,8 @@ seek (int fd, unsigned position)
 unsigned
 tell (int fd)
 {
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -521,21 +456,8 @@ tell (int fd)
 void
 close (int fd)
 {
-  struct list *files = &thread_current ()->files;
-  struct file *file = NULL;
-  struct list_elem *element;
-
   /* Find a file of FD. */
-  for (element = list_begin (files); element != list_end (files);
-       element = list_next (element))
-    {
-      struct file *file_ = list_entry (element, struct file, elem);
-      if (file_->fd == fd)
-        {
-          file = file_;
-          break;
-        }
-    }
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
   /* If such file is not found, don't progress further. */
   if (file == NULL)
@@ -543,7 +465,7 @@ close (int fd)
 
   /* Remove the file from a list of files and close the file. */
   lock_acquire (&filesys_lock);
-  list_remove (element);
+  remove_file_by_fd (&thread_current ()->files, fd);
   file_close (file);
   lock_release (&filesys_lock);
 }
