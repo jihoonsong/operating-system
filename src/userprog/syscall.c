@@ -335,7 +335,7 @@ write (int fd, const void *buffer, unsigned int size)
       lock_acquire (&filesys_lock);
       putbuf (buffer_indirect, size);
       lock_release (&filesys_lock);
-
+    
       return size;
     }
 
