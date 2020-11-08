@@ -206,6 +206,10 @@ process_exit (void)
   /* Signal that current thread exited. */
   sema_up (&cur->pcb->wait);
 
+  /* Allow writing on the loaded ELF executable. */
+  if (cur->elf_executable != NULL)
+    file_allow_write (cur->elf_executable);
+
   /* If current thread is orphan, release its process control block.
      Otherwise, it will be released when its parent calls wait() or exits. */
   if (cur->pcb->orphan)
@@ -424,11 +428,19 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
+  /* Deny writing on the loaded ELF executable. */
+  file_deny_write (file);
+
+  /* Remember the loaded ELF executable. */
+  t->elf_executable = file;
+
   success = true;
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  if (!success)
+    file_close (file);
+
   return success;
 }
 
