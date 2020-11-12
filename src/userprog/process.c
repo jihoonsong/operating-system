@@ -78,7 +78,11 @@ start_process (void *task)
   char *file_name;
   struct intr_frame if_;
   struct thread *cur;
+  struct lock filesys_lock;
   bool success;
+
+  /* Initialize a file system lock. */
+  lock_init (&filesys_lock);
 
   /* Parse FILE_NAME_, which is the first non-option argument, into
      a name of ELF file to be executed and its arguments. */
@@ -91,7 +95,9 @@ start_process (void *task)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
+  lock_acquire (&filesys_lock);
   success = load (file_name, &if_.eip, &if_.esp);
+  lock_release (&filesys_lock);
 
   /* Store load result to process control block. */
   cur = thread_current ();
