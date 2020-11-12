@@ -203,10 +203,7 @@ thread_create (const char *name, int priority,
   /* Create a process control block. */
   pcb = palloc_get_page (PAL_ZERO);
   if (pcb == NULL)
-    {
-      palloc_free_page (t);
-      return TID_ERROR;
-    }
+    return TID_ERROR;
 
   pcb->pid = (pid_t) tid;
   pcb->alive = true;
@@ -232,11 +229,7 @@ thread_create (const char *name, int priority,
 
   /* Check if its execution started successfully. */
   if (!pcb->start_success)
-    {
-      palloc_free_page (t);
-      palloc_free_page (pcb);
-      return TID_ERROR;
-    }
+    return TID_ERROR;
 #endif
 
   return tid;

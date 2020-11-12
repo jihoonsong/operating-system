@@ -54,24 +54,14 @@ process_execute (const char *task)
   strlcpy (file_name, task, PGSIZE);
   file_name = strtok_r (file_name, " \t", &save_ptr);
 
-  /* If FILE_NAME is invalid, return TID_ERROR. */
-  if(filesys_open (file_name) == NULL)
-    {
-      palloc_free_page (task_copy);
-      palloc_free_page (file_name);
-      return TID_ERROR;
-    }
-
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, task_copy);
-  if (tid == TID_ERROR)
-    {
-      palloc_free_page (task_copy);
-      palloc_free_page (file_name);
-      return TID_ERROR;
-    }
 
-  return tid;
+  /* Release memory. */
+  palloc_free_page (task_copy);
+  palloc_free_page (file_name);
+
+  return tid == TID_ERROR ? TID_ERROR : tid;
 }
 
 /* A thread function that loads a user process and starts it
@@ -86,7 +76,11 @@ start_process (void *task)
   char *file_name;
   struct intr_frame if_;
   struct thread *cur;
+  struct lock filesys_lock;
   bool success;
+
+  /* Initialize a file system lock. */
+  lock_init (&filesys_lock);
 
   /* Parse FILE_NAME_, which is the first non-option argument, into
      a name of ELF file to be executed and its arguments. */
@@ -99,7 +93,9 @@ start_process (void *task)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
+  lock_acquire (&filesys_lock);
   success = load (file_name, &if_.eip, &if_.esp);
+  lock_release (&filesys_lock);
 
   /* Store load result to process control block. */
   cur = thread_current ();
@@ -108,9 +104,6 @@ start_process (void *task)
   /* Push arguments onto the stack. */
   if (success)
     push_arguments_onto_stack (argc, (const char **) argv, &if_.esp);
-
-  /* Release memory. */
-  palloc_free_page (task);
 
   /* Signal that current thread has started its execution. */
   sema_up (&cur->pcb->start);
@@ -166,6 +159,7 @@ process_wait (tid_t child_tid UNUSED)
   if (child->being_waited)
     return -1;
 
+  /* Mark that the child is now being waitied. */
   child->being_waited = true;
 
   /* If child is still alive, wait until it terminates. */
@@ -194,10 +188,11 @@ process_exit (void)
 
   /* For each child, if child is alive set its ORPHAN to true.
      If child is not alive, release its process control block. */
-  for (struct list_elem *element = list_begin (&cur->children);
-       element != list_end (&cur->children); element = list_next (element))
+  while (!list_empty (&cur->children))
     {
+      struct list_elem *element = list_pop_front (&cur->children);
       struct process *child = list_entry (element, struct process, elem);
+
       if (child->alive)
         child->orphan = true;
       else
@@ -212,24 +207,24 @@ process_exit (void)
 
   /* Allow writing on the loaded ELF executable and close it. */
   if (cur->elf_executable != NULL)
-  {
-    file_allow_write (cur->elf_executable);
+    {
+      file_allow_write (cur->elf_executable);
 
-    lock_acquire (&filesys_lock);
-    file_close (cur->elf_executable);
-    lock_release (&filesys_lock);
-  }
+      lock_acquire (&filesys_lock);
+      file_close (cur->elf_executable);
+      lock_release (&filesys_lock);
+    }
 
   /* Close all opened files. */
   while (!list_empty (&cur->files))
-  {
-    struct list_elem *element = list_pop_front (&cur->files);
-    struct file *file = list_entry (element, struct file, elem);
+    {
+      struct list_elem *element = list_pop_front (&cur->files);
+      struct file *file = list_entry (element, struct file, elem);
 
-    lock_acquire (&filesys_lock);
-    file_close (file);
-    lock_release (&filesys_lock);
-  }
+      lock_acquire (&filesys_lock);
+      file_close (file);
+      lock_release (&filesys_lock);
+    }
 
   /* Print exit status. */
   printf ("%s: exit(%d)\n", cur->name, exit_status);
