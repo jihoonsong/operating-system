@@ -56,14 +56,12 @@ process_execute (const char *task)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, task_copy);
-  if (tid == TID_ERROR)
-    {
-      palloc_free_page (task_copy);
-      palloc_free_page (file_name);
-      return TID_ERROR;
-    }
 
-  return tid;
+  /* Release memory. */
+  palloc_free_page (task_copy);
+  palloc_free_page (file_name);
+
+  return tid == TID_ERROR ? TID_ERROR : tid;
 }
 
 /* A thread function that loads a user process and starts it
@@ -106,9 +104,6 @@ start_process (void *task)
   /* Push arguments onto the stack. */
   if (success)
     push_arguments_onto_stack (argc, (const char **) argv, &if_.esp);
-
-  /* Release memory. */
-  palloc_free_page (task);
 
   /* Signal that current thread has started its execution. */
   sema_up (&cur->pcb->start);
@@ -164,6 +159,7 @@ process_wait (tid_t child_tid UNUSED)
   if (child->being_waited)
     return -1;
 
+  /* Mark that the child is now being waitied. */
   child->being_waited = true;
 
   /* If child is still alive, wait until it terminates. */
