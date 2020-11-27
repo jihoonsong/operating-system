@@ -170,7 +170,9 @@ thread_create (const char *name, int priority,
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
   struct switch_threads_frame *sf;
+#ifdef USERPROG
   struct process *pcb;
+#endif
   tid_t tid;
 
   ASSERT (function != NULL);
@@ -421,8 +423,10 @@ idle (void *idle_started_ UNUSED)
 {
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
+#ifdef USERPROG
   idle_thread->pcb->start_success = true;
   sema_up (&idle_thread->pcb->start);
+#endif
   sema_up (idle_started);
 
   for (;;)
