@@ -32,6 +32,9 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+static bool cond_list_compare (const struct list_elem *a,
+                               const struct list_elem *b,
+                               void *aux);
 static bool sema_list_compare (const struct list_elem *a,
                                const struct list_elem *b,
                                void *aux);
@@ -341,6 +344,23 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+/* Compares the value of two list elements A and B, given
+   auxiliary data AUX.  Returns true if A is less than B, or
+   false if A is greater than or equal to B. */
+static bool
+cond_list_compare (const struct list_elem *a,
+                   const struct list_elem *b,
+                   void *aux UNUSED)
+{
+  struct semaphore_elem *elem_a = list_entry (a, struct semaphore_elem, elem);
+  struct semaphore_elem *elem_b = list_entry (b, struct semaphore_elem, elem);
+
+  struct semaphore *sema_a = &elem_a->semaphore;
+  struct semaphore *sema_b = &elem_b->semaphore;
+
+  return sema_a->priority > sema_b->priority;
 }
 
 /* Compares the value of two list elements A and B, given
