@@ -33,6 +33,10 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
+static bool sleep_list_compare (const struct list_elem *a,
+                                const struct list_elem *b,
+                                void *aux);
+
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    registers the corresponding interrupt, and initializes SLEEP_LIST. */
 void
@@ -274,4 +278,18 @@ real_time_delay (int64_t num, int32_t denom)
      the possibility of overflow. */
   ASSERT (denom % 1000 == 0);
   busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000));
+}
+
+/* Compares the value of two list elements A and B, given
+   auxiliary data AUX.  Returns true if A is less than B, or
+   false if A is greater than or equal to B. */
+static bool
+sleep_list_compare (const struct list_elem *a,
+                    const struct list_elem *b,
+                    void *aux UNUSED)
+{
+  struct thread *thread_a = list_entry (a, struct thread, sleep_elem);
+  struct thread *thread_b = list_entry (b, struct thread, sleep_elem);
+
+  return thread_a->priority > thread_b->priority;
 }
