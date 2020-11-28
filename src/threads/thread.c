@@ -21,7 +21,8 @@
 #define THREAD_MAGIC 0xcd6abf4b
 
 /* List of processes in THREAD_READY state, that is, processes
-   that are ready to run but not actually running. */
+   that are ready to run but not actually running.
+   Sorted by priority in monotone decreasing order. */
 static struct list ready_list;
 
 /* List of all processes.  Processes are added to this list
@@ -274,7 +275,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, ready_list_compare, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -345,7 +346,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread)
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, ready_list_compare, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
