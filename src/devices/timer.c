@@ -107,7 +107,7 @@ timer_sleep (int64_t ticks)
   /* Add the current thread to SLEEP_LIST. */
   struct thread *cur = thread_current ();
   cur->sleep_ticks = ticks;
-  list_push_back (&sleep_list, &cur->sleep_elem);
+  list_insert_ordered (&sleep_list, &cur->sleep_elem, sleep_list_compare, NULL);
 
   /* thread_block () should be called with interrupt being disabled. */
   thread_block ();
