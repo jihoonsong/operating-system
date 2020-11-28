@@ -186,6 +186,22 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
+
+  /* Unblock threads in SLEEP_LIST that need to wake up. */
+  for (struct list_elem *e = list_begin (&sleep_list);
+       e != list_end (&sleep_list); e = list_next (e))
+    {
+      struct thread *sleep_thread = list_entry (e, struct thread, sleep_elem);
+
+      /* Decrement SLEEP_TICKS of each thread in SLEEP_LIST by 1. */
+      sleep_thread->sleep_ticks -= 1;
+      if (sleep_thread->sleep_ticks <= 0)
+        {
+          list_remove (&sleep_thread->sleep_elem);
+          thread_unblock (sleep_thread);
+        }
+    }
+
   thread_tick ();
 }
 
