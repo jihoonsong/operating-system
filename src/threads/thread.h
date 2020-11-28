@@ -14,6 +14,14 @@ enum thread_status
     THREAD_DYING        /* About to be destroyed. */
   };
 
+/* Donated priority. */
+struct donated_priority
+  {
+    int priority;                   /* Priority. */
+    struct lock *donated_for_lock;  /* A lock the priority was donated for. */
+    struct list_elem elem;          /* List element. */
+  };
+
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
@@ -88,6 +96,9 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int base_priority;                  /* Base priority. */
+    struct list donated_priorities;     /* Donated priorities. */
+    struct lock *waiting_on_lock;       /* A lock waiting on to be released. */
     int64_t sleep_ticks;                /* Sleep for at least this amount. */
     struct list_elem sleep_elem;        /* List element for sleep list. */
     struct list_elem allelem;           /* List element for all threads list. */
