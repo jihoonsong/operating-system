@@ -55,6 +55,10 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
+#ifndef USERPROG
+bool thread_prior_aging;
+#endif
+
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -72,6 +76,9 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+#ifndef USERPROG
+static void thread_aging (void);
+#endif
 static bool ready_list_compare (const struct list_elem *a,
                                 const struct list_elem *b,
                                 void *aux);
@@ -142,6 +149,11 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+
+#ifndef USERPROG
+  if (thread_prior_aging)
+    thread_aging ();
+#endif
 }
 
 /* Prints thread statistics. */
@@ -680,6 +692,20 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+#ifndef USERPROG
+static void
+thread_aging (void)
+{
+  for (struct list_elem *e = list_begin (&ready_list);
+       e != list_end (&ready_list); e = list_next (e))
+    {
+      struct thread *thread = list_entry (e, struct thread, elem);
+      thread->base_priority += 1;
+      thread_update_priority (thread);
+    }
+}
+#endif
 
 /* Compares the value of two list elements A and B, given
    auxiliary data AUX.  Returns true if A is less than B, or
