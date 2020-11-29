@@ -32,12 +32,6 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
-static bool cond_list_compare (const struct list_elem *a,
-                               const struct list_elem *b,
-                               void *aux);
-static bool sema_list_compare (const struct list_elem *a,
-                               const struct list_elem *b,
-                               void *aux);
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -75,8 +69,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0)
     {
-      list_insert_ordered (&sema->waiters, &thread_current ()->elem,
-                           sema_list_compare, NULL);
+      list_push_back (&sema->waiters, &thread_current ()->elem);
       thread_block ();
     }
   sema->value--;
@@ -305,7 +298,7 @@ cond_wait (struct condition *cond, struct lock *lock)
 
   sema_init (&waiter.semaphore, 0);
   waiter.semaphore.priority = thread_current()->priority;
-  list_insert_ordered (&cond->waiters, &waiter.elem, cond_list_compare, NULL);
+  list_push_back (&cond->waiters, &waiter.elem);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
@@ -345,35 +338,4 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
-}
-
-/* Compares the value of two list elements A and B, given
-   auxiliary data AUX.  Returns true if A is less than B, or
-   false if A is greater than or equal to B. */
-static bool
-cond_list_compare (const struct list_elem *a,
-                   const struct list_elem *b,
-                   void *aux UNUSED)
-{
-  struct semaphore_elem *elem_a = list_entry (a, struct semaphore_elem, elem);
-  struct semaphore_elem *elem_b = list_entry (b, struct semaphore_elem, elem);
-
-  struct semaphore *sema_a = &elem_a->semaphore;
-  struct semaphore *sema_b = &elem_b->semaphore;
-
-  return sema_a->priority > sema_b->priority;
-}
-
-/* Compares the value of two list elements A and B, given
-   auxiliary data AUX.  Returns true if A is less than B, or
-   false if A is greater than or equal to B. */
-static bool
-sema_list_compare (const struct list_elem *a,
-                   const struct list_elem *b,
-                   void *aux UNUSED)
-{
-  struct thread *thread_a = list_entry (a, struct thread, elem);
-  struct thread *thread_b = list_entry (b, struct thread, elem);
-
-  return thread_a->priority > thread_b->priority;
 }
