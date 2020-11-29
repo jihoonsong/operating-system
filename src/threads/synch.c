@@ -30,8 +30,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "threads/interrupt.h"
+#include "threads/palloc.h"
 #include "threads/thread.h"
 
+static void donate_priority (struct lock *donated_for_lock);
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -198,6 +200,13 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  /* Donate priority if there exists a lock holder. */
+  if (lock->holder != NULL)
+    {
+      thread_current ()->waiting_on_lock = lock;
+      donate_priority (lock);
+    }
+
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
@@ -338,4 +347,26 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+static void
+donate_priority (struct lock *donated_for_lock)
+{
+  struct thread *holder = donated_for_lock->holder;
+  struct thread *cur = thread_current ();
+
+  if (cur->priority <= holder->base_priority)
+    return;
+
+  struct donated_priority *donation = palloc_get_page (PAL_ZERO);
+  ASSERT (donation != NULL);
+
+  donation->priority = cur->priority;
+  donation->donated_for_lock = donated_for_lock;
+
+  list_push_back (&holder->donated_priorities, &donation->elem);
+  thread_update_priority (holder);
+
+  if (holder->waiting_on_lock != NULL)
+    donate_priority (holder->waiting_on_lock);
 }
