@@ -394,6 +394,25 @@ thread_set_priority (int new_priority)
     }
 }
 
+void
+thread_update_priority (struct thread *thread)
+{
+  int max_priority = thread->base_priority;
+
+  for (struct list_elem *e = list_begin (&thread->donated_priorities);
+       e != list_end (&thread->donated_priorities);
+       e = list_next (e))
+    {
+      struct donated_priority *donation = \
+        list_entry (e, struct donated_priority, elem);
+
+      if (max_priority < donation->priority)
+        max_priority = donation->priority;
+    }
+
+  thread->priority = max_priority;
+}
+
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void)
