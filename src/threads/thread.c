@@ -697,6 +697,13 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 static void
 thread_aging (void)
 {
+  for (struct list_elem *e = list_begin (&ready_list);
+       e != list_end (&ready_list); e = list_next (e))
+    {
+      struct thread *thread = list_entry (e, struct thread, elem);
+      thread->base_priority += 1;
+      thread_update_priority (thread);
+    }
 }
 #endif
 
