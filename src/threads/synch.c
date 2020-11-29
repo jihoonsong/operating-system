@@ -34,6 +34,7 @@
 #include "threads/thread.h"
 
 static void donate_priority (struct lock *donated_for_lock);
+static void withdraw_donated_priority (struct lock *lock);
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -242,6 +243,9 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  /* Withdraw donated priority for LOCK, if any. */
+  withdraw_donated_priority (lock);
+
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
@@ -369,4 +373,27 @@ donate_priority (struct lock *donated_for_lock)
 
   if (holder->waiting_on_lock != NULL)
     donate_priority (holder->waiting_on_lock);
+}
+
+static void
+withdraw_donated_priority (struct lock *lock)
+{
+  struct thread *holder = lock->holder;
+
+  for (struct list_elem *e = list_begin (&holder->donated_priorities);
+       e != list_end (&holder->donated_priorities);)
+    {
+      struct donated_priority *donation = \
+        list_entry (e, struct donated_priority, elem);
+
+      if (donation->donated_for_lock == lock)
+        {
+          e = list_remove (&donation->elem);
+          palloc_free_page (donation);
+        }
+      else
+        e = list_next (e);
+    }
+
+  thread_update_priority (holder);
 }
