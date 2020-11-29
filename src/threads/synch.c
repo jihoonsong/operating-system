@@ -30,7 +30,11 @@
 #include <stdio.h>
 #include <string.h>
 #include "threads/interrupt.h"
+#include "threads/palloc.h"
 #include "threads/thread.h"
+
+static void donate_priority (struct lock *donated_for_lock);
+static void withdraw_donated_priority (struct lock *lock);
 
 static bool cond_list_compare (const struct list_elem *a,
                                const struct list_elem *b,
@@ -75,8 +79,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0)
     {
-      list_insert_ordered (&sema->waiters, &thread_current ()->elem,
-                           sema_list_compare, NULL);
+      list_push_back (&sema->waiters, &thread_current ()->elem);
       thread_block ();
     }
   sema->value--;
@@ -123,9 +126,11 @@ sema_up (struct semaphore *sema)
   old_level = intr_disable ();
   sema->value++;
   if (!list_empty (&sema->waiters))
-    thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
-
+    {
+      list_sort (&sema->waiters, sema_list_compare, NULL);
+      thread_unblock (list_entry (list_pop_front (&sema->waiters),
+                                  struct thread, elem));
+    }
   intr_set_level (old_level);
 }
 
@@ -205,6 +210,13 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  /* Donate priority if there exists a lock holder. */
+  if (lock->holder != NULL)
+    {
+      thread_current ()->waiting_on_lock = lock;
+      donate_priority (lock);
+    }
+
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
@@ -239,6 +251,9 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
+
+  /* Withdraw donated priority for LOCK, if any. */
+  withdraw_donated_priority (lock);
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
@@ -305,7 +320,7 @@ cond_wait (struct condition *cond, struct lock *lock)
 
   sema_init (&waiter.semaphore, 0);
   waiter.semaphore.priority = thread_current()->priority;
-  list_insert_ordered (&cond->waiters, &waiter.elem, cond_list_compare, NULL);
+  list_push_back (&cond->waiters, &waiter.elem);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
@@ -327,8 +342,11 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   ASSERT (lock_held_by_current_thread (lock));
 
   if (!list_empty (&cond->waiters))
-    sema_up (&list_entry (list_pop_front (&cond->waiters),
-                          struct semaphore_elem, elem)->semaphore);
+    {
+      list_sort (&cond->waiters, cond_list_compare, NULL);
+      sema_up (&list_entry (list_pop_front (&cond->waiters),
+                            struct semaphore_elem, elem)->semaphore);
+    }
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by
@@ -345,6 +363,51 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+static void
+donate_priority (struct lock *donated_for_lock)
+{
+  struct thread *holder = donated_for_lock->holder;
+  struct thread *cur = thread_current ();
+
+  if (cur->priority <= holder->base_priority)
+    return;
+
+  struct donated_priority *donation = palloc_get_page (PAL_ZERO);
+  ASSERT (donation != NULL);
+
+  donation->priority = cur->priority;
+  donation->donated_for_lock = donated_for_lock;
+
+  list_push_back (&holder->donated_priorities, &donation->elem);
+  thread_update_priority (holder);
+
+  if (holder->waiting_on_lock != NULL)
+    donate_priority (holder->waiting_on_lock);
+}
+
+static void
+withdraw_donated_priority (struct lock *lock)
+{
+  struct thread *holder = lock->holder;
+
+  for (struct list_elem *e = list_begin (&holder->donated_priorities);
+       e != list_end (&holder->donated_priorities);)
+    {
+      struct donated_priority *donation = \
+        list_entry (e, struct donated_priority, elem);
+
+      if (donation->donated_for_lock == lock)
+        {
+          e = list_remove (&donation->elem);
+          palloc_free_page (donation);
+        }
+      else
+        e = list_next (e);
+    }
+
+  thread_update_priority (holder);
 }
 
 /* Compares the value of two list elements A and B, given

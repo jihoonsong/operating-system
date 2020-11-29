@@ -381,7 +381,9 @@ thread_set_priority (int new_priority)
 {
   struct thread *cur = thread_current ();
 
-  cur->priority = new_priority;
+  cur->base_priority = new_priority;
+
+  thread_update_priority (cur);
 
   /* Preempts the current running thread if it has a lower priority than
      the head of ready_list. */
@@ -392,6 +394,25 @@ thread_set_priority (int new_priority)
       if (cur->priority < ready_front->priority)
         thread_yield ();
     }
+}
+
+void
+thread_update_priority (struct thread *thread)
+{
+  int max_priority = thread->base_priority;
+
+  for (struct list_elem *e = list_begin (&thread->donated_priorities);
+       e != list_end (&thread->donated_priorities);
+       e = list_next (e))
+    {
+      struct donated_priority *donation = \
+        list_entry (e, struct donated_priority, elem);
+
+      if (max_priority < donation->priority)
+        max_priority = donation->priority;
+    }
+
+  thread->priority = max_priority;
 }
 
 /* Returns the current thread's priority. */
@@ -522,6 +543,9 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->base_priority = priority;
+  list_init (&t->donated_priorities);
+  t->waiting_on_lock = NULL;
   t->magic = THREAD_MAGIC;
 
 #ifdef USERPROG
@@ -564,7 +588,10 @@ next_thread_to_run (void)
   if (list_empty (&ready_list))
     return idle_thread;
   else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+    {
+      list_sort (&ready_list, ready_list_compare, NULL);
+      return list_entry (list_pop_front (&ready_list), struct thread, elem);
+    }
 }
 
 /* Completes a thread switch by activating the new thread's page
