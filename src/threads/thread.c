@@ -381,7 +381,9 @@ thread_set_priority (int new_priority)
 {
   struct thread *cur = thread_current ();
 
-  cur->priority = new_priority;
+  cur->base_priority = new_priority;
+
+  thread_update_priority (cur);
 
   /* Preempts the current running thread if it has a lower priority than
      the head of ready_list. */
