@@ -119,6 +119,9 @@ thread_init (void)
   initial_thread->tid = allocate_tid ();
   initial_thread->nice = 0;
 
+  /* Set up a fraction for fixed-point number in signed 17.14 format. */
+  fraction = 1 << 14;
+
   /* Set up the system load average for BSD scheduler. */
   load_avg = 0;
 }
