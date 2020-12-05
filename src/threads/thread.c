@@ -64,6 +64,13 @@ bool thread_prior_aging;
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+/* A fraction for fixed-point number in signed 17.14 format. */
+static int fraction;
+
+/* The system load average, an estimation of the average number of threads
+   ready to run over the past minute except for the idle thread. */
+static int load_avg;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -111,6 +118,12 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
   initial_thread->nice = 0;
+
+  /* Set up a fraction for fixed-point number in signed 17.14 format. */
+  fraction = 1 << 14;
+
+  /* Set up the system load average for BSD scheduler. */
+  load_avg = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -461,8 +474,44 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  ASSERT (thread_mlfqs);
+  ASSERT (load_avg >= 0);
+
+  /* Round to the nearest integer. */
+  return (load_avg + fraction / 2) / fraction * 100;
+}
+
+/* Update the system load average. */
+void
+thread_update_load_avg (void)
+{
+  if (!thread_mlfqs)
+    return;
+
+  /* The number of threads that are either running or ready
+     except for IDLE_THREAD. */
+  int ready_threads = 0;
+
+  if (running_thread () != idle_thread)
+    ++ready_threads;
+
+  for (struct list_elem *e = list_begin (&ready_list);
+       e != list_end (&ready_list); e = list_next (e))
+    {
+      struct thread *thread = list_entry (e, struct thread, elem);
+      if (thread != idle_thread)
+        ++ready_threads;
+    }
+
+  /* Update the system load average. Please be cautious on
+     fixed-point arithmetic operations.
+
+     Two coefficients and LOAD_AVG are fixed-points and
+     READY_THREADS is an integer. */
+  int load_avg_coef = (59 * fraction) / 60;
+  int ready_threads_coef = (1 * fraction) / 60;
+  load_avg = ((int64_t) load_avg_coef) * load_avg / fraction +
+             ready_threads_coef * ready_threads;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */

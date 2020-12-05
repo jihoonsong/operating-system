@@ -32,6 +32,7 @@ static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
+static void timer_wake_up (void);
 
 static bool sleep_list_compare (const struct list_elem *a,
                                 const struct list_elem *b,
@@ -139,6 +140,25 @@ timer_nsleep (int64_t ns)
   real_time_sleep (ns, 1000 * 1000 * 1000);
 }
 
+/* Unblock threads in SLEEP_LIST that need to wake up. */
+static void
+timer_wake_up (void)
+{
+  for (struct list_elem *e = list_begin (&sleep_list);
+       e != list_end (&sleep_list); e = list_next (e))
+    {
+      struct thread *sleep_thread = list_entry (e, struct thread, sleep_elem);
+
+      /* Decrement SLEEP_TICKS of each thread in SLEEP_LIST by 1. */
+      sleep_thread->sleep_ticks -= 1;
+      if (sleep_thread->sleep_ticks <= 0)
+        {
+          list_remove (&sleep_thread->sleep_elem);
+          thread_unblock (sleep_thread);
+        }
+    }
+}
+
 /* Busy-waits for approximately MS milliseconds.  Interrupts need
    not be turned on.
 
@@ -191,19 +211,13 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
 
-  /* Unblock threads in SLEEP_LIST that need to wake up. */
-  for (struct list_elem *e = list_begin (&sleep_list);
-       e != list_end (&sleep_list); e = list_next (e))
-    {
-      struct thread *sleep_thread = list_entry (e, struct thread, sleep_elem);
+  /* Unblock threads need to wake up. */
+  timer_wake_up ();
 
-      /* Decrement SLEEP_TICKS of each thread in SLEEP_LIST by 1. */
-      sleep_thread->sleep_ticks -= 1;
-      if (sleep_thread->sleep_ticks <= 0)
-        {
-          list_remove (&sleep_thread->sleep_elem);
-          thread_unblock (sleep_thread);
-        }
+  /* Update data for BSD scheduler per second. */
+  if (timer_ticks () % TIMER_FREQ == 0)
+    {
+      thread_update_load_avg ();
     }
 
   thread_tick ();
