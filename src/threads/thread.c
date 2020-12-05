@@ -64,6 +64,10 @@ bool thread_prior_aging;
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+/* The system load average, an estimation of the average number of threads
+   ready to run over the past minute except for the idle thread. */
+static int load_avg;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
