@@ -109,6 +109,7 @@ struct thread
     int priority;                       /* Priority. */
     int base_priority;                  /* Base priority. */
     int nice;                           /* Niceness. */
+    int recent_cpu;                     /* Recently received CPU time. */
     struct list donated_priorities;     /* Donated priorities. */
     struct lock *waiting_on_lock;       /* A lock waiting on to be released. */
     int64_t sleep_ticks;                /* Sleep for at least this amount. */
