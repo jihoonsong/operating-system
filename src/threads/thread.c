@@ -64,6 +64,9 @@ bool thread_prior_aging;
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+/* A fraction for fixed-point number in signed 17.14 format. */
+static int fraction;
+
 /* The system load average, an estimation of the average number of threads
    ready to run over the past minute except for the idle thread. */
 static int load_avg;
