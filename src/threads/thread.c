@@ -474,8 +474,11 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  ASSERT (thread_mlfqs);
+  ASSERT (load_avg >= 0);
+
+  /* Round to the nearest integer. */
+  return (load_avg + fraction / 2) / fraction * 100;
 }
 
 /* Update the system load average. */
