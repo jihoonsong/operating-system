@@ -482,6 +482,33 @@ thread_get_load_avg (void)
 void
 thread_update_load_avg (void)
 {
+  if (!thread_mlfqs)
+    return;
+
+  /* The number of threads that are either running or ready
+     except for IDLE_THREAD. */
+  int ready_threads = 0;
+
+  if (running_thread () != idle_thread)
+    ++ready_threads;
+
+  for (struct list_elem *e = list_begin (&ready_list);
+       e != list_end (&ready_list); e = list_next (e))
+    {
+      struct thread *thread = list_entry (e, struct thread, elem);
+      if (thread != idle_thread)
+        ++ready_threads;
+    }
+
+  /* Update the system load average. Please be cautious on
+     fixed-point arithmetic operations.
+
+     Two coefficients and LOAD_AVG are fixed-points and
+     READY_THREADS is an integer. */
+  int load_avg_coef = (59 * fraction) / 60;
+  int ready_threads_coef = (1 * fraction) / 60;
+  load_avg = ((int64_t) load_avg_coef) * load_avg / fraction +
+             ready_threads_coef * ready_threads;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
