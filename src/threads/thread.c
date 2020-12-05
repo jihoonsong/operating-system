@@ -115,6 +115,9 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
   initial_thread->nice = 0;
+
+  /* Set up the system load average for BSD scheduler. */
+  load_avg = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
