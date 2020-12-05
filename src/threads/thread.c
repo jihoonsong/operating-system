@@ -472,6 +472,12 @@ thread_get_load_avg (void)
   return 0;
 }
 
+/* Update the system load average. */
+void
+thread_update_load_avg (void)
+{
+}
+
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void)
