@@ -39,6 +39,10 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+/* Thread niceness. */
+#define NICE_MIN -20                    /* Lowest niceness. */
+#define NICE_MAX 20                     /* Highest niceness. */
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -104,6 +108,7 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     int base_priority;                  /* Base priority. */
+    int nice;                           /* Niceness. */
     struct list donated_priorities;     /* Donated priorities. */
     struct lock *waiting_on_lock;       /* A lock waiting on to be released. */
     int64_t sleep_ticks;                /* Sleep for at least this amount. */

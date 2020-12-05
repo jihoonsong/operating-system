@@ -110,6 +110,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  initial_thread->nice = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -202,6 +203,7 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
+  t->nice = thread_current ()->nice;
 
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
@@ -436,17 +438,23 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED)
+thread_set_nice (int nice)
 {
-  /* Not yet implemented. */
+  ASSERT (thread_mlfqs);
+  ASSERT (nice >= NICE_MIN && nice <= NICE_MAX);
+
+  thread_current ()->nice = nice;
+  // TODO: Recalculate priority.
+  // TODO: Yield if current thread's new priority is not the max priority.
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  ASSERT (thread_mlfqs);
+
+  return thread_current ()->nice;
 }
 
 /* Returns 100 times the system load average. */
