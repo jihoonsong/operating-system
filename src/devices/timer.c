@@ -224,6 +224,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
       thread_update_recent_cpu ();
     }
 
+  /* Update priorities of all threads. */
+  thread_update_priority ();
+
   thread_tick ();
 }
 

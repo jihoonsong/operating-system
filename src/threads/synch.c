@@ -120,6 +120,7 @@ void
 sema_up (struct semaphore *sema)
 {
   enum intr_level old_level;
+  struct thread *wake_up = NULL;
 
   ASSERT (sema != NULL);
 
@@ -128,10 +129,15 @@ sema_up (struct semaphore *sema)
   if (!list_empty (&sema->waiters))
     {
       list_sort (&sema->waiters, sema_list_compare, NULL);
-      thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                  struct thread, elem));
+      wake_up = list_entry (list_pop_front (&sema->waiters),
+                            struct thread, elem);
+      thread_unblock (wake_up);
     }
   intr_set_level (old_level);
+
+  /* Yield CPU if the priority of current thread is not the maximum priority. */
+  if (wake_up != NULL && thread_current ()->priority < wake_up->priority)
+    thread_yield();
 }
 
 static void sema_test_helper (void *sema_);
@@ -381,7 +387,7 @@ donate_priority (struct lock *donated_for_lock)
   donation->donated_for_lock = donated_for_lock;
 
   list_push_back (&holder->donated_priorities, &donation->elem);
-  thread_update_priority (holder);
+  holder->priority = thread_find_max_priority (holder);
 
   if (holder->waiting_on_lock != NULL)
     donate_priority (holder->waiting_on_lock);
@@ -407,7 +413,7 @@ withdraw_donated_priority (struct lock *lock)
         e = list_next (e);
     }
 
-  thread_update_priority (holder);
+  holder->priority = thread_find_max_priority (holder);
 }
 
 /* Compares the value of two list elements A and B, given

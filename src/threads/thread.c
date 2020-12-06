@@ -93,6 +93,9 @@ static bool ready_list_compare (const struct list_elem *a,
                                 const struct list_elem *b,
                                 void *aux);
 
+/* Calculate priority of THREAD determined by the formula of BSD scheduler. */
+static int calculate_priority (const struct thread *thread);
+
 /* Helper functions for fixed-point real arithmetic. */
 #define INT
 #define REAL
@@ -286,6 +289,10 @@ thread_create (const char *name, int priority,
     return TID_ERROR;
 #endif
 
+  /* Yield CPU if the priority of current thread is not the maximum priority. */
+  if (thread_current ()->priority < t->priority)
+    thread_yield ();
+
   return tid;
 }
 
@@ -331,11 +338,6 @@ thread_unblock (struct thread *t)
   /* Update READY_THREADS. */
   if (t != idle_thread)
     ++ready_threads;
-
-  /* Preempts the current running thread if T has a higher priority. */
-  struct thread *cur = thread_current ();
-  if (cur != idle_thread && cur->priority < t->priority)
-    thread_yield ();
 
   intr_set_level (old_level);
 }
@@ -440,7 +442,7 @@ thread_set_priority (int new_priority)
 
   cur->base_priority = new_priority;
 
-  thread_update_priority (cur);
+  cur->priority = thread_find_max_priority (cur);
 
   /* Preempts the current running thread if it has a lower priority than
      the head of ready_list. */
@@ -453,8 +455,10 @@ thread_set_priority (int new_priority)
     }
 }
 
-void
-thread_update_priority (struct thread *thread)
+/* Returns the maximum priority of THREAD among its base priority and
+   donated priorities. */
+int
+thread_find_max_priority (struct thread *thread)
 {
   int max_priority = thread->base_priority;
 
@@ -469,7 +473,42 @@ thread_update_priority (struct thread *thread)
         max_priority = donation->priority;
     }
 
-  thread->priority = max_priority;
+  return max_priority;
+}
+
+/* Updates priorities of all threads. */
+void
+thread_update_priority (void)
+{
+  if (!thread_mlfqs)
+    return;
+
+  static int ticks = 0;
+
+  /* Perform update per TIME_SLICE. */
+  if (++ticks != TIME_SLICE)
+    return;
+
+  ticks = 0;
+
+  int max_priority = PRI_MIN;
+  for (struct list_elem *e = list_begin (&all_list);
+       e != list_end (&all_list); e = list_next (e))
+    {
+      struct thread *thread = list_entry (e, struct thread, allelem);
+
+      thread->priority = calculate_priority (thread);
+
+      if (max_priority < thread->priority)
+        max_priority = thread->priority;
+    }
+
+  /* Yield CPU if the priority of current thread is not the maximum priority.
+
+     Note that intr_yield_on_return () must be used instead of thread_yield ()
+     becuase this function is called within timer_interrupt (). */
+  if (thread_current ()->priority < max_priority)
+    intr_yield_on_return();
 }
 
 /* Returns the current thread's priority. */
@@ -486,9 +525,21 @@ thread_set_nice (int nice)
   ASSERT (thread_mlfqs);
   ASSERT (nice >= NICE_MIN && nice <= NICE_MAX);
 
-  thread_current ()->nice = nice;
-  // TODO: Recalculate priority.
-  // TODO: Yield if current thread's new priority is not the max priority.
+  struct thread *cur = thread_current ();
+  if (cur == idle_thread)
+    return;
+
+  cur->nice = nice;
+  cur->priority = calculate_priority (cur);
+
+  /* Yield CPU if the priority of current thread is not the maximum priority. */
+  if (!list_empty (&ready_list))
+    {
+      struct thread *ready_front = list_entry (list_front (&ready_list),
+                                               struct thread, elem);
+      if (cur->priority < ready_front->priority)
+        thread_yield ();
+    }
 }
 
 /* Returns the current thread's nice value. */
@@ -809,7 +860,7 @@ thread_aging (void)
     {
       struct thread *thread = list_entry (e, struct thread, elem);
       thread->base_priority += 1;
-      thread_update_priority (thread);
+      thread->priority = thread_find_max_priority (thread);
     }
 }
 #endif
@@ -826,6 +877,26 @@ ready_list_compare (const struct list_elem *a,
   struct thread *thread_b = list_entry (b, struct thread, elem);
 
   return thread_a->priority > thread_b->priority;
+}
+
+/* Calculate priority of THREAD determined by the formula of BSD scheduler. */
+static int
+calculate_priority (const struct thread *thread)
+{
+  ASSERT (thread != NULL);
+
+  /* Calculate priority. */
+  int priority = int_to_real (PRI_MAX);
+  priority = sub_real_from_real (div_real_by_int (thread->recent_cpu, 4),
+                                 priority);
+  priority = sub_int_from_real (thread->nice * 2, priority);
+  priority = real_to_int (priority);
+
+  /* Calibrate priority. */
+  priority = PRI_MIN > priority ? PRI_MIN : priority;
+  priority = PRI_MAX < priority ? PRI_MAX : priority;
+
+  return priority;
 }
 
 static int
