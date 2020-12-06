@@ -545,6 +545,23 @@ thread_increment_recent_cpu (void)
 void
 thread_update_recent_cpu (void)
 {
+  if (!thread_mlfqs)
+    return;
+
+  int recent_cpu_coef = ((int64_t) 2 * load_avg) * fraction /
+                        (2 * load_avg + 1 * fraction);
+
+  for (struct list_elem *e = list_begin (&all_list);
+       e != list_end (&all_list); e = list_next (e))
+    {
+      struct thread *thread = list_entry (e, struct thread, allelem);
+      if (thread == idle_thread)
+        continue;
+
+      int recent_cpu = thread->recent_cpu;
+      thread->recent_cpu = ((int64_t) recent_cpu_coef) * recent_cpu / fraction +
+                           thread->nice * fraction;
+    }
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
