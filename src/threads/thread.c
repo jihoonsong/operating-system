@@ -93,6 +93,9 @@ static bool ready_list_compare (const struct list_elem *a,
                                 const struct list_elem *b,
                                 void *aux);
 
+/* Calculate priority of THREAD determined by the formula of BSD scheduler. */
+static int calculate_priority (const struct thread *thread);
+
 /* Helper functions for fixed-point real arithmetic. */
 #define INT
 #define REAL
@@ -844,6 +847,26 @@ ready_list_compare (const struct list_elem *a,
   struct thread *thread_b = list_entry (b, struct thread, elem);
 
   return thread_a->priority > thread_b->priority;
+}
+
+/* Calculate priority of THREAD determined by the formula of BSD scheduler. */
+static int
+calculate_priority (const struct thread *thread)
+{
+  ASSERT (thread != NULL);
+
+  /* Calculate priority. */
+  int priority = int_to_real (PRI_MAX);
+  priority = sub_real_from_real (div_real_by_int (thread->recent_cpu, 4),
+                                 priority);
+  priority = sub_int_from_real (thread->nice * 2, priority);
+  priority = real_to_int (priority);
+
+  /* Calibrate priority. */
+  priority = PRI_MIN > priority ? PRI_MIN : priority;
+  priority = PRI_MAX < priority ? PRI_MAX : priority;
+
+  return priority;
 }
 
 static int
