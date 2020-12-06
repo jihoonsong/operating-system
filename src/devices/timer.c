@@ -214,6 +214,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
   /* Unblock threads need to wake up. */
   timer_wake_up ();
 
+  /* Update data for BSD scheduler per tick. */
+  thread_increment_recent_cpu ();
+
   /* Update data for BSD scheduler per second. */
   if (timer_ticks () % TIMER_FREQ == 0)
     {
