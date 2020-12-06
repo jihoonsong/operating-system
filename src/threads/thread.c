@@ -71,6 +71,9 @@ static int fraction;
    ready to run over the past minute except for the idle thread. */
 static int load_avg;
 
+/* The number of threads that are running or ready except for IDLE_THREAD. */
+static int ready_threads;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -89,6 +92,20 @@ static void thread_aging (void);
 static bool ready_list_compare (const struct list_elem *a,
                                 const struct list_elem *b,
                                 void *aux);
+
+/* Helper functions for fixed-point real arithmetic. */
+#define INT
+#define REAL
+static int int_to_real (int INT n);
+static int real_to_int (int REAL x);
+static int add_real_and_int (int REAL x, int INT n);
+static int add_real_and_real (int REAL x, int REAL y);
+static int sub_int_from_real (int INT n, int REAL x);
+static int sub_real_from_real (int REAL y, int REAL x);
+static int mul_real_by_real (int REAL x, int REAL y);
+static int mul_real_by_int (int REAL x, int INT n);
+static int div_real_by_real (int REAL x, int REAL y);
+static int div_real_by_int (int REAL x, int INT n);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -118,12 +135,14 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
   initial_thread->nice = 0;
+  initial_thread->recent_cpu = 0;
 
   /* Set up a fraction for fixed-point number in signed 17.14 format. */
   fraction = 1 << 14;
 
-  /* Set up the system load average for BSD scheduler. */
+  /* Set up data for BSD scheduler. */
   load_avg = 0;
+  ready_threads = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -217,6 +236,7 @@ thread_create (const char *name, int priority,
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
   t->nice = thread_current ()->nice;
+  t->recent_cpu = thread_current ()->recent_cpu;
 
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
@@ -281,7 +301,10 @@ thread_block (void)
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
-  thread_current ()->status = THREAD_BLOCKED;
+  struct thread *cur = thread_current ();
+  cur->status = THREAD_BLOCKED;
+  if (cur != idle_thread)
+    --ready_threads;
   schedule ();
 }
 
@@ -304,6 +327,10 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_insert_ordered (&ready_list, &t->elem, ready_list_compare, NULL);
   t->status = THREAD_READY;
+
+  /* Update READY_THREADS. */
+  if (t != idle_thread)
+    ++ready_threads;
 
   /* Preempts the current running thread if T has a higher priority. */
   struct thread *cur = thread_current ();
@@ -361,8 +388,11 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
-  list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
+  struct thread *cur = thread_current ();
+  list_remove (&cur->allelem);
+  cur->status = THREAD_DYING;
+  if (cur != idle_thread)
+    --ready_threads;
   schedule ();
   NOT_REACHED ();
 }
@@ -477,8 +507,7 @@ thread_get_load_avg (void)
   ASSERT (thread_mlfqs);
   ASSERT (load_avg >= 0);
 
-  /* Round to the nearest integer. */
-  return (load_avg + fraction / 2) / fraction * 100;
+  return real_to_int (load_avg * 100);
 }
 
 /* Update the system load average. */
@@ -488,40 +517,61 @@ thread_update_load_avg (void)
   if (!thread_mlfqs)
     return;
 
-  /* The number of threads that are either running or ready
-     except for IDLE_THREAD. */
-  int ready_threads = 0;
-
-  if (running_thread () != idle_thread)
-    ++ready_threads;
-
-  for (struct list_elem *e = list_begin (&ready_list);
-       e != list_end (&ready_list); e = list_next (e))
-    {
-      struct thread *thread = list_entry (e, struct thread, elem);
-      if (thread != idle_thread)
-        ++ready_threads;
-    }
-
   /* Update the system load average. Please be cautious on
-     fixed-point arithmetic operations.
-
-     Two coefficients and LOAD_AVG are fixed-points and
-     READY_THREADS is an integer. */
-  int load_avg_coef = (59 * fraction) / 60;
-  int ready_threads_coef = (1 * fraction) / 60;
-  load_avg = ((int64_t) load_avg_coef) * load_avg / fraction +
-             ready_threads_coef * ready_threads;
+     fixed-point arithmetic operations. */
+  int load_avg_coef = div_real_by_int (int_to_real (59), 60);
+  int ready_threads_coef = div_real_by_int (int_to_real (1), 60);
+  int weighted_load_avg = mul_real_by_real (load_avg_coef, load_avg);
+  int weighted_ready_threads = mul_real_by_int (ready_threads_coef,
+                                                ready_threads);
+  load_avg = add_real_and_real (weighted_load_avg, weighted_ready_threads);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  ASSERT (thread_mlfqs);
+
+  return real_to_int (thread_current ()->recent_cpu * 100);
 }
-
+
+/* Increment RECENT_CPU of the current running thread by 1. */
+void
+thread_increment_recent_cpu (void)
+{
+  if (!thread_mlfqs)
+    return;
+
+  struct thread *cur = thread_current ();
+  if (cur != idle_thread)
+    cur->recent_cpu = add_real_and_int (cur->recent_cpu, 1);
+}
+
+/* Update RECENT_CPU of all threads except for IDLE_THREAD. */
+void
+thread_update_recent_cpu (void)
+{
+  if (!thread_mlfqs)
+    return;
+
+  int load_avg_twice = mul_real_by_int (load_avg, 2);
+  int recent_cpu_coef = div_real_by_real (load_avg_twice,
+                                          add_real_and_int (load_avg_twice, 1));
+
+  for (struct list_elem *e = list_begin (&all_list);
+       e != list_end (&all_list); e = list_next (e))
+    {
+      struct thread *thread = list_entry (e, struct thread, allelem);
+      if (thread == idle_thread)
+        continue;
+
+      int recent_cpu = thread->recent_cpu;
+      int weighted_recent_cpu = mul_real_by_real (recent_cpu_coef, recent_cpu);
+      thread->recent_cpu = add_real_and_int (weighted_recent_cpu, thread->nice);
+    }
+}
+
 /* Idle thread.  Executes when no other thread is ready to run.
 
    The idle thread is initially put on the ready list by
@@ -776,4 +826,66 @@ ready_list_compare (const struct list_elem *a,
   struct thread *thread_b = list_entry (b, struct thread, elem);
 
   return thread_a->priority > thread_b->priority;
+}
+
+static int
+int_to_real (int INT n)
+{
+  return n * fraction;
+}
+
+static int
+real_to_int (int REAL x)
+{
+  /* Round to the nearest integer. */
+  x += x > 0 ? fraction / 2 : -fraction / 2;
+  return x / fraction;
+}
+
+static int
+add_real_and_int (int REAL x, int INT n)
+{
+  return x + n * fraction;
+}
+
+static int
+add_real_and_real (int REAL x, int REAL y)
+{
+  return x + y;
+}
+
+static int
+sub_int_from_real (int INT n, int REAL x)
+{
+  return x - n * fraction;
+}
+
+static int
+sub_real_from_real (int REAL y, int REAL x)
+{
+  return x - y;
+}
+
+static int
+mul_real_by_real (int REAL x, int REAL y)
+{
+  return ((int64_t) x) * y / fraction;
+}
+
+static int
+mul_real_by_int (int REAL x, int INT n)
+{
+  return x * n;
+}
+
+static int
+div_real_by_real (int REAL x, int REAL y)
+{
+  return ((int64_t) x) * fraction / y;
+}
+
+static int
+div_real_by_int (int REAL x, int INT n)
+{
+  return x / n;
 }
