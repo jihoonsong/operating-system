@@ -71,6 +71,9 @@ static int fraction;
    ready to run over the past minute except for the idle thread. */
 static int load_avg;
 
+/* The number of threads that are running or ready except for IDLE_THREAD. */
+static int ready_threads;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -123,8 +126,9 @@ thread_init (void)
   /* Set up a fraction for fixed-point number in signed 17.14 format. */
   fraction = 1 << 14;
 
-  /* Set up the system load average for BSD scheduler. */
+  /* Set up data for BSD scheduler. */
   load_avg = 0;
+  ready_threads = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -283,7 +287,10 @@ thread_block (void)
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
-  thread_current ()->status = THREAD_BLOCKED;
+  struct thread *cur = thread_current ();
+  cur->status = THREAD_BLOCKED;
+  if (cur != idle_thread)
+    --ready_threads;
   schedule ();
 }
 
@@ -306,6 +313,10 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_insert_ordered (&ready_list, &t->elem, ready_list_compare, NULL);
   t->status = THREAD_READY;
+
+  /* Update READY_THREADS. */
+  if (t != idle_thread)
+    ++ready_threads;
 
   /* Preempts the current running thread if T has a higher priority. */
   struct thread *cur = thread_current ();
@@ -363,8 +374,11 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
-  list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
+  struct thread *cur = thread_current ();
+  list_remove (&cur->allelem);
+  cur->status = THREAD_DYING;
+  if (cur != idle_thread)
+    --ready_threads;
   schedule ();
   NOT_REACHED ();
 }
@@ -489,21 +503,6 @@ thread_update_load_avg (void)
 {
   if (!thread_mlfqs)
     return;
-
-  /* The number of threads that are either running or ready
-     except for IDLE_THREAD. */
-  int ready_threads = 0;
-
-  if (running_thread () != idle_thread)
-    ++ready_threads;
-
-  for (struct list_elem *e = list_begin (&ready_list);
-       e != list_end (&ready_list); e = list_next (e))
-    {
-      struct thread *thread = list_entry (e, struct thread, elem);
-      if (thread != idle_thread)
-        ++ready_threads;
-    }
 
   /* Update the system load average. Please be cautious on
      fixed-point arithmetic operations.
