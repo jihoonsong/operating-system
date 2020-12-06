@@ -440,7 +440,7 @@ thread_set_priority (int new_priority)
 
   cur->base_priority = new_priority;
 
-  thread_update_priority (cur);
+  cur->priority = thread_find_max_priority (cur);
 
   /* Preempts the current running thread if it has a lower priority than
      the head of ready_list. */
@@ -453,8 +453,10 @@ thread_set_priority (int new_priority)
     }
 }
 
-void
-thread_update_priority (struct thread *thread)
+/* Returns the maximum priority of THREAD among its base priority and
+   donated priorities. */
+int
+thread_find_max_priority (struct thread *thread)
 {
   int max_priority = thread->base_priority;
 
@@ -469,7 +471,7 @@ thread_update_priority (struct thread *thread)
         max_priority = donation->priority;
     }
 
-  thread->priority = max_priority;
+  return max_priority;
 }
 
 /* Returns the current thread's priority. */
@@ -809,7 +811,7 @@ thread_aging (void)
     {
       struct thread *thread = list_entry (e, struct thread, elem);
       thread->base_priority += 1;
-      thread_update_priority (thread);
+      thread->priority = thread_find_max_priority (thread);
     }
 }
 #endif

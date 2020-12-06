@@ -381,7 +381,7 @@ donate_priority (struct lock *donated_for_lock)
   donation->donated_for_lock = donated_for_lock;
 
   list_push_back (&holder->donated_priorities, &donation->elem);
-  thread_update_priority (holder);
+  holder->priority = thread_find_max_priority (holder);
 
   if (holder->waiting_on_lock != NULL)
     donate_priority (holder->waiting_on_lock);
@@ -407,7 +407,7 @@ withdraw_donated_priority (struct lock *lock)
         e = list_next (e);
     }
 
-  thread_update_priority (holder);
+  holder->priority = thread_find_max_priority (holder);
 }
 
 /* Compares the value of two list elements A and B, given
