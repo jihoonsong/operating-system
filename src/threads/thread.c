@@ -523,7 +523,19 @@ thread_get_recent_cpu (void)
   /* Not yet implemented. */
   return 0;
 }
-
+
+/* Increment RECENT_CPU of the current running thread by 1. */
+void
+thread_increment_recent_cpu (void)
+{
+}
+
+/* Update RECENT_CPU of all threads except for IDLE_THREAD. */
+void
+thread_update_recent_cpu (void)
+{
+}
+
 /* Idle thread.  Executes when no other thread is ready to run.
 
    The idle thread is initially put on the ready list by
