@@ -533,6 +533,12 @@ thread_get_recent_cpu (void)
 void
 thread_increment_recent_cpu (void)
 {
+  if (!thread_mlfqs)
+    return;
+
+  struct thread *cur = thread_current ();
+  if (cur != idle_thread)
+    cur->recent_cpu += 1 * fraction;
 }
 
 /* Update RECENT_CPU of all threads except for IDLE_THREAD. */
