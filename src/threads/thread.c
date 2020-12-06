@@ -93,6 +93,20 @@ static bool ready_list_compare (const struct list_elem *a,
                                 const struct list_elem *b,
                                 void *aux);
 
+/* Helper functions for fixed-point real arithmetic. */
+#define INT
+#define REAL
+static int int_to_real (int INT n);
+static int real_to_int (int REAL x);
+static int add_real_and_int (int REAL x, int INT n);
+static int add_real_and_real (int REAL x, int REAL y);
+static int sub_int_from_real (int INT n, int REAL x);
+static int sub_real_from_real (int REAL y, int REAL x);
+static int mul_real_by_real (int REAL x, int REAL y);
+static int mul_real_by_int (int REAL x, int INT n);
+static int div_real_by_real (int REAL x, int REAL y);
+static int div_real_by_int (int REAL x, int INT n);
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -818,4 +832,66 @@ ready_list_compare (const struct list_elem *a,
   struct thread *thread_b = list_entry (b, struct thread, elem);
 
   return thread_a->priority > thread_b->priority;
+}
+
+static int
+int_to_real (int INT n)
+{
+  return n * fraction;
+}
+
+static int
+real_to_int (int REAL x)
+{
+  /* Round to the nearest integer. */
+  x += x > 0 ? fraction / 2 : -fraction / 2;
+  return x / fraction;
+}
+
+static int
+add_real_and_int (int REAL x, int INT n)
+{
+  return x + n * fraction;
+}
+
+static int
+add_real_and_real (int REAL x, int REAL y)
+{
+  return x + y;
+}
+
+static int
+sub_int_from_real (int INT n, int REAL x)
+{
+  return x - n * fraction;
+}
+
+static int
+sub_real_from_real (int REAL y, int REAL x)
+{
+  return x - y;
+}
+
+static int
+mul_real_by_real (int REAL x, int REAL y)
+{
+  return ((int64_t) x) * y / fraction;
+}
+
+static int
+mul_real_by_int (int REAL x, int INT n)
+{
+  return x * n;
+}
+
+static int
+div_real_by_real (int REAL x, int REAL y)
+{
+  return ((int64_t) x) * fraction / y;
+}
+
+static int
+div_real_by_int (int REAL x, int INT n)
+{
+  return x / n;
 }
