@@ -474,6 +474,12 @@ thread_find_max_priority (struct thread *thread)
   return max_priority;
 }
 
+/* Updates priorities of all threads. */
+void
+thread_update_priority (void)
+{
+}
+
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void)
