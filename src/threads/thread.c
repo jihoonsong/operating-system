@@ -525,9 +525,21 @@ thread_set_nice (int nice)
   ASSERT (thread_mlfqs);
   ASSERT (nice >= NICE_MIN && nice <= NICE_MAX);
 
-  thread_current ()->nice = nice;
-  // TODO: Recalculate priority.
-  // TODO: Yield if current thread's new priority is not the max priority.
+  struct thread *cur = thread_current ();
+  if (cur == idle_thread)
+    return;
+
+  cur->nice = nice;
+  cur->priority = calculate_priority (cur);
+
+  /* Yield CPU if the priority of current thread is not the maximum priority. */
+  if (!list_empty (&ready_list))
+    {
+      struct thread *ready_front = list_entry (list_front (&ready_list),
+                                               struct thread, elem);
+      if (cur->priority < ready_front->priority)
+        thread_yield ();
+    }
 }
 
 /* Returns the current thread's nice value. */
