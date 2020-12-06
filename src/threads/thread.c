@@ -507,8 +507,7 @@ thread_get_load_avg (void)
   ASSERT (thread_mlfqs);
   ASSERT (load_avg >= 0);
 
-  /* Round to the nearest integer. */
-  return (load_avg * 100 + fraction / 2) / fraction;
+  return real_to_int (load_avg * 100);
 }
 
 /* Update the system load average. */
@@ -519,14 +518,13 @@ thread_update_load_avg (void)
     return;
 
   /* Update the system load average. Please be cautious on
-     fixed-point arithmetic operations.
-
-     Two coefficients and LOAD_AVG are fixed-points and
-     READY_THREADS is an integer. */
-  int load_avg_coef = (59 * fraction) / 60;
-  int ready_threads_coef = (1 * fraction) / 60;
-  load_avg = ((int64_t) load_avg_coef) * load_avg / fraction +
-             ready_threads_coef * ready_threads;
+     fixed-point arithmetic operations. */
+  int load_avg_coef = div_real_by_int (int_to_real (59), 60);
+  int ready_threads_coef = div_real_by_int (int_to_real (1), 60);
+  int weighted_load_avg = mul_real_by_real (load_avg_coef, load_avg);
+  int weighted_ready_threads = mul_real_by_int (ready_threads_coef,
+                                                ready_threads);
+  load_avg = add_real_and_real (weighted_load_avg, weighted_ready_threads);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -535,12 +533,7 @@ thread_get_recent_cpu (void)
 {
   ASSERT (thread_mlfqs);
 
-  int recent_cpu = thread_current ()->recent_cpu;
-
-  /* Round to the nearest integer. */
-  recent_cpu *= 100;
-  recent_cpu += recent_cpu > 0 ? fraction / 2 : -fraction / 2;
-  return recent_cpu / fraction;
+  return real_to_int (thread_current ()->recent_cpu * 100);
 }
 
 /* Increment RECENT_CPU of the current running thread by 1. */
@@ -552,7 +545,7 @@ thread_increment_recent_cpu (void)
 
   struct thread *cur = thread_current ();
   if (cur != idle_thread)
-    cur->recent_cpu += 1 * fraction;
+    cur->recent_cpu = add_real_and_int (cur->recent_cpu, 1);
 }
 
 /* Update RECENT_CPU of all threads except for IDLE_THREAD. */
@@ -562,8 +555,9 @@ thread_update_recent_cpu (void)
   if (!thread_mlfqs)
     return;
 
-  int recent_cpu_coef = ((int64_t) 2 * load_avg) * fraction /
-                        (2 * load_avg + 1 * fraction);
+  int load_avg_twice = mul_real_by_int (load_avg, 2);
+  int recent_cpu_coef = div_real_by_real (load_avg_twice,
+                                          add_real_and_int (load_avg_twice, 1));
 
   for (struct list_elem *e = list_begin (&all_list);
        e != list_end (&all_list); e = list_next (e))
@@ -573,8 +567,8 @@ thread_update_recent_cpu (void)
         continue;
 
       int recent_cpu = thread->recent_cpu;
-      thread->recent_cpu = ((int64_t) recent_cpu_coef) * recent_cpu / fraction +
-                           thread->nice * fraction;
+      int weighted_recent_cpu = mul_real_by_real (recent_cpu_coef, recent_cpu);
+      thread->recent_cpu = add_real_and_int (weighted_recent_cpu, thread->nice);
     }
 }
 
