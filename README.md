@@ -12,12 +12,12 @@ All 80 tests passed.
 
 ### System Design Rationale
 
-In Pintos, threads and user processes are one-to-one mapping. Thus, Each thread
+In Pintos, threads and user processes are one-to-one mapping. Thus, each thread
 contains a process control block of its corresponding user process. You can find
-the definition of process control block in struct process in userprog/process.h.
+the definition of process control block as struct process in userprog/process.h.
 
-Each thread, even the main thread, can have a child or children. Since a child
-thread can exit while its process control block is remaining on memory, a parent
+Each thread, even main thread, can have a child or children. Since a child thread
+can exit while its process control block is still remaining on memory, a parent
 thread has a list of pointers to the process control blocks of its children.
 
 ## Built With
