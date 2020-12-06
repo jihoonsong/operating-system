@@ -289,6 +289,10 @@ thread_create (const char *name, int priority,
     return TID_ERROR;
 #endif
 
+  /* Yield CPU if the priority of current thread is not the maximum priority. */
+  if (thread_current ()->priority < t->priority)
+    thread_yield ();
+
   return tid;
 }
 
