@@ -519,8 +519,14 @@ thread_update_load_avg (void)
 int
 thread_get_recent_cpu (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  ASSERT (thread_mlfqs);
+
+  int recent_cpu = thread_current ()->recent_cpu;
+
+  /* Round to the nearest integer. */
+  recent_cpu *= 100;
+  recent_cpu += recent_cpu > 0 ? fraction / 2 : -fraction / 2;
+  return recent_cpu / fraction;
 }
 
 /* Increment RECENT_CPU of the current running thread by 1. */
