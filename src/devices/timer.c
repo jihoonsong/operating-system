@@ -221,6 +221,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   if (timer_ticks () % TIMER_FREQ == 0)
     {
       thread_update_load_avg ();
+      thread_update_recent_cpu ();
     }
 
   thread_tick ();
