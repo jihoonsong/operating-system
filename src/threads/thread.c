@@ -480,7 +480,7 @@ thread_get_load_avg (void)
   ASSERT (load_avg >= 0);
 
   /* Round to the nearest integer. */
-  return (load_avg + fraction / 2) / fraction * 100;
+  return (load_avg * 100 + fraction / 2) / fraction;
 }
 
 /* Update the system load average. */
