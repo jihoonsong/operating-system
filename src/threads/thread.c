@@ -491,6 +491,25 @@ thread_update_priority (void)
     return;
 
   ticks = 0;
+
+  int max_priority = PRI_MIN;
+  for (struct list_elem *e = list_begin (&all_list);
+       e != list_end (&all_list); e = list_next (e))
+    {
+      struct thread *thread = list_entry (e, struct thread, allelem);
+
+      thread->priority = calculate_priority (thread);
+
+      if (max_priority < thread->priority)
+        max_priority = thread->priority;
+    }
+
+  /* Yield CPU if the priority of current thread is not the maximum priority.
+
+     Note that intr_yield_on_return () must be used instead of thread_yield ()
+     becuase this function is called within timer_interrupt (). */
+  if (thread_current ()->priority < max_priority)
+    intr_yield_on_return();
 }
 
 /* Returns the current thread's priority. */
