@@ -478,6 +478,16 @@ thread_find_max_priority (struct thread *thread)
 void
 thread_update_priority (void)
 {
+  if (!thread_mlfqs)
+    return;
+
+  static int ticks = 0;
+
+  /* Perform update per TIME_SLICE. */
+  if (++ticks != TIME_SLICE)
+    return;
+
+  ticks = 0;
 }
 
 /* Returns the current thread's priority. */
