@@ -3,8 +3,11 @@
 #include <syscall-nr.h>
 #include "devices/input.h"
 #include "devices/shutdown.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "userprog/process.h"
 
@@ -12,21 +15,34 @@ static int get_user (const uint8_t *uaddr);
 static void indirect_user (const void *uptr, void *uindirect);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static void *validate_ptr (void *ptr);
+static int allocate_fd (void);
+static struct file *find_file_by_fd (struct list *files, const int fd);
+static void remove_file_by_fd (struct list *files, const int fd);
 
 static void syscall_handler (struct intr_frame *);
 static void halt (void);
 static void exit (int status);
 static tid_t exec (const char *task);
 static int wait (tid_t tid);
+static bool create (const char *filename, unsigned initial_size);
+static bool remove (const char *filename);
+static int open (const char *filename);
+static int filesize (int fd);
 static int read (int fd, void *buffer, unsigned int size);
 static int write (int fd, const void *buffer, unsigned int size);
+static void seek (int fd, unsigned position);
+static unsigned tell (int fd);
+static void close (int fd);
 static int fibonacci (int n);
 static int max_of_four_int (int a, int b, int c, int d);
+
+static struct lock filesys_lock;
 
 void
 syscall_init (void)
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init (&filesys_lock);
 }
 
 static void
@@ -49,6 +65,19 @@ syscall_handler (struct intr_frame *f UNUSED)
       case SYS_WAIT:
         f->eax = wait (*(tid_t *) validate_ptr (f->esp + 4));
         break;
+      case SYS_CREATE:
+        f->eax = create (validate_ptr (f->esp + 4),
+                         *(unsigned int *) validate_ptr (f->esp + 8));
+        break;
+      case SYS_REMOVE:
+        f->eax = remove (validate_ptr (f->esp + 4));
+        break;
+      case SYS_OPEN:
+        f->eax = open (validate_ptr (f->esp + 4));
+        break;
+      case SYS_FILESIZE:
+        f->eax = filesize (*(int *) validate_ptr (f->esp + 4));
+        break;
       case SYS_READ:
         f->eax = read (*(int *) validate_ptr (f->esp + 4),
                        validate_ptr (f->esp + 8),
@@ -58,6 +87,16 @@ syscall_handler (struct intr_frame *f UNUSED)
         f->eax = write (*(int *) validate_ptr (f->esp + 4),
                         validate_ptr (f->esp + 8),
                         *(unsigned int *) validate_ptr (f->esp + 12));
+        break;
+      case SYS_SEEK:
+        seek (*(int *) validate_ptr (f->esp + 4),
+              *(unsigned int *) validate_ptr (f->esp + 8));
+        break;
+      case SYS_TELL:
+        f->eax = tell (*(int *) validate_ptr (f->esp + 4));
+        break;
+      case SYS_CLOSE:
+        close (*(int *) validate_ptr (f->esp + 4));
         break;
       case SYS_FIBONACCI:
         f->eax = fibonacci (*(int *) validate_ptr (f->esp + 4));
@@ -130,10 +169,64 @@ put_user (uint8_t *udst, uint8_t byte)
 static void *
 validate_ptr (void *ptr)
 {
-  if (ptr == NULL || ptr >= PHYS_BASE || get_user (ptr) == -1)
+  if (ptr == NULL)
     exit (-1);
 
+  if (!is_user_vaddr (ptr))
+    exit (-1);
+
+  for (size_t i = 0; i < sizeof ptr; ++i)
+    if (get_user (ptr + i) == -1)
+      exit (-1);
+
   return ptr;
+}
+
+/* Returns a file descriptor to use for a new file. */
+static int
+allocate_fd (void)
+{
+  static int next_fd = 2; // 0 is STDIN_FILENO and 1 is STDOUT_FILENO.
+  int fd;
+
+  lock_acquire (&filesys_lock);
+  fd = next_fd++;
+  lock_release (&filesys_lock);
+
+  return fd;
+}
+
+/* Returns a file corresponding to FD. */
+static struct file *
+find_file_by_fd (struct list *files, const int fd)
+{
+  struct file *file = NULL;
+
+  for (struct list_elem *element = list_begin (files);
+       element != list_end (files); element = list_next (element))
+    {
+      file = list_entry (element, struct file, elem);
+      if (file->fd == fd)
+        break;
+    }
+
+  return file;
+}
+
+/* Remove a file corresponding to FD. */
+static void
+remove_file_by_fd (struct list *files, const int fd)
+{
+  for (struct list_elem *element = list_begin (files);
+       element != list_end (files); element = list_next (element))
+    {
+      struct file *file = list_entry (element, struct file, elem);
+      if (file->fd == fd)
+        {
+          list_remove (element);
+          return;
+        }
+    }
 }
 
 /* Halt the operating system. */
@@ -147,6 +240,9 @@ halt (void)
 static void
 exit (int status)
 {
+  if (lock_held_by_current_thread (&filesys_lock))
+    lock_release (&filesys_lock);
+
   thread_current ()->pcb->exit_status = status;
   thread_exit ();
 }
@@ -159,7 +255,6 @@ exec (const char *task)
 
   void *buffer_indirect;
   indirect_user (task, &buffer_indirect);
-
   validate_ptr (buffer_indirect);
 
   return process_execute (buffer_indirect);
@@ -174,22 +269,116 @@ wait (tid_t tid)
   return process_wait (tid);
 }
 
+/* Create a file. */
+bool
+create (const char *filename, unsigned initial_size)
+{
+  ASSERT (filename != NULL);
+
+  void *filename_indirect;
+  indirect_user (filename, &filename_indirect);
+  validate_ptr (filename_indirect);
+
+  lock_acquire (&filesys_lock);
+  bool success = filesys_create (filename_indirect, initial_size);
+  lock_release (&filesys_lock);
+
+  return success;
+}
+
+/* Delete a file. */
+bool
+remove (const char *filename)
+{
+  ASSERT (filename != NULL);
+
+  void *filename_indirect;
+  indirect_user (filename, &filename_indirect);
+  validate_ptr (filename_indirect);
+
+  lock_acquire (&filesys_lock);
+  bool success = filesys_remove (filename_indirect);
+  lock_release (&filesys_lock);
+
+  return success;
+}
+
+/* Open a file. */
+int
+open (const char *filename)
+{
+  ASSERT (filename != NULL);
+
+  void *filename_indirect;
+  indirect_user (filename, &filename_indirect);
+  validate_ptr (filename_indirect);
+
+  lock_acquire (&filesys_lock);
+  struct file *file = filesys_open (filename_indirect);
+  lock_release (&filesys_lock);
+
+  if (file == NULL)
+    return -1;
+
+  file->fd = allocate_fd ();
+  list_push_back (&thread_current ()->files, &file->elem);
+
+  return file->fd;
+}
+
+/* Obtain a file's size. */
+int
+filesize (int fd)
+{
+  /* Find a file of FD. */
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return 0;
+
+  /* Get the size of FILE in bytes. */
+  lock_acquire (&filesys_lock);
+  int length = (int) file_length (file);
+  lock_release (&filesys_lock);
+
+  return length;
+}
+
 /* Read from a file. */
 static int
 read (int fd, void *buffer, unsigned int size)
 {
   ASSERT (buffer != NULL);
 
+  void *buffer_indirect;
+  indirect_user (buffer, &buffer_indirect);
+  validate_ptr (buffer_indirect);
+
   if (fd == STDIN_FILENO)
     {
+      lock_acquire (&filesys_lock);
       for (unsigned int i = 0; i < size; ++i)
-        if (!put_user (buffer + i, input_getc ()))
+        if (!put_user (buffer_indirect + i, input_getc ()))
           exit (-1);
+      lock_release (&filesys_lock);
 
       return size;
     }
 
-  return -1;
+  /* Find a file of FD. */
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return 0;
+
+  /* Read SIZE bytes from FILE to BUFFER. */
+  lock_acquire (&filesys_lock);
+  int bytes_read = (int) file_read (file, buffer_indirect, size);
+  lock_release (&filesys_lock);
+
+  return bytes_read;
 }
 
 /* Write to a file. */
@@ -200,16 +389,85 @@ write (int fd, const void *buffer, unsigned int size)
 
   void *buffer_indirect;
   indirect_user (buffer, &buffer_indirect);
-
   validate_ptr (buffer_indirect);
 
   if (fd == STDOUT_FILENO)
     {
+      lock_acquire (&filesys_lock);
       putbuf (buffer_indirect, size);
+      lock_release (&filesys_lock);
+
       return size;
     }
 
-  return -1;
+  /* Find a file of FD. */
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return 0;
+
+  /* Write SIZE bytes from BUFFER to FILE.*/
+  lock_acquire (&filesys_lock);
+  int bytes_written = (int) file_write (file, buffer_indirect, size);
+  lock_release (&filesys_lock);
+
+  return bytes_written;
+}
+
+/* Change position in a file. */
+void
+seek (int fd, unsigned position)
+{
+  /* Find a file of FD. */
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return;
+
+  /* Sets the current position in FILE to POSITION bytes from the
+     start of the file. */
+  lock_acquire (&filesys_lock);
+  file_seek (file, (off_t) position);
+  lock_release (&filesys_lock);
+}
+
+/* Report current position in a file. */
+unsigned
+tell (int fd)
+{
+  /* Find a file of FD. */
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return 0;
+
+  /* Remove the file from a list of files and close the file. */
+  lock_acquire (&filesys_lock);
+  unsigned int position = file_tell (file);
+  lock_release (&filesys_lock);
+
+  return position;
+}
+
+/* Close a file. */
+void
+close (int fd)
+{
+  /* Find a file of FD. */
+  struct file *file = find_file_by_fd (&thread_current ()->files, fd);
+
+  /* If such file is not found, don't progress further. */
+  if (file == NULL)
+    return;
+
+  /* Remove the file from a list of files and close the file. */
+  lock_acquire (&filesys_lock);
+  remove_file_by_fd (&thread_current ()->files, fd);
+  file_close (file);
+  lock_release (&filesys_lock);
 }
 
 /* Get n-th value of Fibonacci sequence. */
