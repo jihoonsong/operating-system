@@ -1,6 +1,7 @@
 #include "vm/frametab.h"
 #include <debug.h>
 #include <list.h>
+#include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
@@ -38,6 +39,7 @@ frametab_get_frame (enum palloc_flags flags, void *upage)
   if (!lock_held_by_current_thread (&frame_lock))
     lock_acquire (&frame_lock);
 
+  /* Allocate a new frame. */
   void *kpage = palloc_get_page (PAL_USER | flags);
   if (kpage == NULL)
     {
@@ -45,7 +47,17 @@ frametab_get_frame (enum palloc_flags flags, void *upage)
       PANIC ("frametab_get_frame: out of frames");
     }
 
-  // TODO: Construct a new frame and add to frames.
+  /* Construct a new frame table entry. */
+  struct frame *frame = malloc (sizeof *frame);
+  if (frame == NULL)
+    return NULL;
+
+  frame->thread = thread_current ();
+  frame->upage = upage;
+  frame->kpage = kpage;
+
+  /* Add a new frame table entry to the frame table. */
+  list_push_back (&frames, &frame->elem);
 
   lock_release (&frame_lock);
 
