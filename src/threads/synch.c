@@ -135,9 +135,11 @@ sema_up (struct semaphore *sema)
     }
   intr_set_level (old_level);
 
+#ifndef USERPROG
   /* Yield CPU if the priority of current thread is not the maximum priority. */
   if (wake_up != NULL && thread_current ()->priority < wake_up->priority)
-    thread_yield();
+    thread_yield ();
+#endif
 }
 
 static void sema_test_helper (void *sema_);

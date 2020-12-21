@@ -289,9 +289,11 @@ thread_create (const char *name, int priority,
     return TID_ERROR;
 #endif
 
+#ifndef USERPROG
   /* Yield CPU if the priority of current thread is not the maximum priority. */
   if (thread_current ()->priority < t->priority)
     thread_yield ();
+#endif
 
   return tid;
 }
@@ -503,12 +505,14 @@ thread_update_priority (void)
         max_priority = thread->priority;
     }
 
+#ifndef USERPROG
   /* Yield CPU if the priority of current thread is not the maximum priority.
 
      Note that intr_yield_on_return () must be used instead of thread_yield ()
      becuase this function is called within timer_interrupt (). */
   if (thread_current ()->priority < max_priority)
     intr_yield_on_return();
+#endif
 }
 
 /* Returns the current thread's priority. */
@@ -532,6 +536,7 @@ thread_set_nice (int nice)
   cur->nice = nice;
   cur->priority = calculate_priority (cur);
 
+#ifndef USERPROG
   /* Yield CPU if the priority of current thread is not the maximum priority. */
   if (!list_empty (&ready_list))
     {
@@ -540,6 +545,7 @@ thread_set_nice (int nice)
       if (cur->priority < ready_front->priority)
         thread_yield ();
     }
+#endif
 }
 
 /* Returns the current thread's nice value. */
