@@ -71,8 +71,19 @@ frametab_free_frame (void *kpage)
   if (!lock_held_by_current_thread (&frame_lock))
     lock_acquire (&frame_lock);
 
-  // TODO: Remove the frame at KPAGE from frames.
+  /* Remove the frame at KPAGE from the frame table. */
+  for (struct list_elem *e = list_begin (&frames);
+       e != list_end (&frames); e = list_next (e))
+    {
+      struct frame *frame = list_entry (e, struct frame, elem);
+      if (frame->kpage == kpage)
+        {
+          list_remove (&frame->elem);
+          break;
+        }
+    }
 
+  /* Free KPAGE. */
   palloc_free_page (kpage);
 
   lock_release (&frame_lock);
