@@ -3,6 +3,16 @@
 #include <list.h>
 #include "threads/palloc.h"
 #include "threads/synch.h"
+#include "threads/thread.h"
+
+/* A frame table entry. */
+struct frame
+  {
+    struct thread *thread;      /* A frame owner thread. */
+    void *upage;                /* A user page, which points to KPAGE. */
+    void *kpage;                /* A kernel page, which equals to frame. */
+    struct list_elem elem;      /* List element. */
+  };
 
 /* A frame table. Frames are inserted in FIFO manner
    for the clock page replacement algorithm. */
