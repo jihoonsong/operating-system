@@ -6,6 +6,10 @@
 #include "threads/synch.h"
 #include "threads/thread.h"
 
+/* A frame table. Frames are inserted in FIFO manner
+   for the clock page replacement algorithm. */
+static struct list frametab;
+
 /* A frame table entry. */
 struct frame
   {
@@ -15,10 +19,6 @@ struct frame
     struct list_elem elem;      /* List element. */
   };
 
-/* A frame table. Frames are inserted in FIFO manner
-   for the clock page replacement algorithm. */
-static struct list frames;
-
 /* A frame lock. */
 static struct lock frame_lock;
 
@@ -26,7 +26,7 @@ static struct lock frame_lock;
 void
 frametab_init (void)
 {
-  list_init (&frames);
+  list_init (&frametab);
   lock_init (&frame_lock);
 }
 
@@ -44,7 +44,7 @@ frametab_get_frame (enum palloc_flags flags, void *upage)
   if (kpage == NULL)
     {
       // TODO: Swapping have to occur.
-      PANIC ("frametab_get_frame: out of frames");
+      PANIC ("frametab_get_frame: out of frametab");
     }
 
   /* Construct a new frame table entry. */
@@ -57,7 +57,7 @@ frametab_get_frame (enum palloc_flags flags, void *upage)
   frame->kpage = kpage;
 
   /* Add a new frame table entry to the frame table. */
-  list_push_back (&frames, &frame->elem);
+  list_push_back (&frametab, &frame->elem);
 
   lock_release (&frame_lock);
 
@@ -72,8 +72,8 @@ frametab_free_frame (void *kpage)
     lock_acquire (&frame_lock);
 
   /* Remove the frame at KPAGE from the frame table. */
-  for (struct list_elem *e = list_begin (&frames);
-       e != list_end (&frames); e = list_next (e))
+  for (struct list_elem *e = list_begin (&frametab);
+       e != list_end (&frametab); e = list_next (e))
     {
       struct frame *frame = list_entry (e, struct frame, elem);
       if (frame->kpage == kpage)
