@@ -2,7 +2,9 @@
 #include <hash.h>
 #include <string.h>
 #include "threads/malloc.h"
+#include "threads/vaddr.h"
 #include "userprog/pagedir.h"
+#include "vm/frametab.h"
 
 /* How to install pages. */
 enum page_install_flag
@@ -157,6 +159,53 @@ bool
 pagetab_load_page (uint32_t *pagedir, struct pagetab *pagetab,
                    void *upage)
 {
+  /* Locate the page that faulted in a supplemental page table. */
+  struct page *fault_page = pagetab_find_page (pagetab, upage);
+  if (fault_page == NULL)
+    return false;
+
+  /* Obtain a frame to store the page. */
+  void *frame = frametab_get_frame (PAL_USER, upage);
+  if (frame == NULL)
+    return false;
+
+  /* Fetch the data into the frame. */
+  switch (fault_page->flag)
+    {
+      case PAGE_FILE:
+        if (!pagetab_load_file_page (fault_page->file,
+                                     fault_page->ofs,
+                                     fault_page->read_bytes,
+                                     fault_page->zero_bytes,
+                                     frame))
+          {
+            frametab_free_frame (frame);
+            return false;
+          }
+        break;
+      case PAGE_SWAP:
+        // TODO: Swap-in.
+        break;
+      case PAGE_ZERO:
+        if (!pagetab_load_zero_page (frame))
+          {
+            frametab_free_frame (frame);
+            return false;
+          }
+        break;
+      default:
+        /* Do nothing. */
+        break;
+    }
+
+  /* Update a supplemental page table entry point to the physical page. */
+  if (!pagetab_set_page (pagedir, pagetab, upage, frame, fault_page->writable))
+    {
+      frametab_free_frame (frame);
+      return false;
+    }
+
+  return true;
 }
 
 /* Find and return a supplement page table entry that has user virtual page
