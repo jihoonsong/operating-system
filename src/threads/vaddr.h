@@ -70,6 +70,15 @@ is_kernel_vaddr (const void *vaddr)
   return vaddr >= PHYS_BASE;
 }
 
+#ifdef VM
+/* Returns true if VADDR is a stack virtual address. */
+static inline bool
+is_stack_vaddr (const void *vaddr)
+{
+  return vaddr >= PHYS_BASE - STACK_SIZE_MAX && vaddr < PHYS_BASE;
+}
+#endif
+
 /* Returns kernel virtual address at which physical address PADDR
    is mapped. */
 static inline void *
