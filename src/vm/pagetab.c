@@ -2,6 +2,15 @@
 #include <hash.h>
 #include "threads/malloc.h"
 
+/* How to install pages. */
+enum page_install_flag
+  {
+    PAGE_FILE = 1,           /* Page contents from file system. */
+    PAGE_SWAP = 2,           /* Page contents from swap slot. */
+    PAGE_ZERO = 3,           /* Zero page contents. */
+    PAGE_PRESENT,            /* Page contents present in memory. */
+  };
+
 /* A supplemental page table. */
 struct pagetab
   {
@@ -11,9 +20,11 @@ struct pagetab
 /* A supplemental page table entry. */
 struct page
   {
-    void *upage;                /* A user page, which points to KPAGE. */
-    void *kpage;                /* A kernel page, which equals to frame. */
-    struct hash_elem elem;      /* Hash element. */
+    void *upage;                  /* A user page, which points to KPAGE. */
+    void *kpage;                  /* A kernel page, which equals to frame. */
+    bool writable;                /* True if writable, false otherwise. */
+    enum page_install_flag flag;  /* Page installation flag. */
+    struct hash_elem elem;        /* Hash element. */
   };
 
 static bool less_func (const struct hash_elem *a,
