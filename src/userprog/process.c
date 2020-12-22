@@ -19,6 +19,7 @@
 #include "threads/vaddr.h"
 #ifdef VM
 #include "vm/frametab.h"
+#include "vm/pagetab.h"
 #endif
 
 static thread_func start_process NO_RETURN;
@@ -360,6 +361,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+#ifdef VM
+  /* Allocate supplemental page table. */
+  t->pagetab = pagetab_create ();
+#endif
+
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL)
@@ -543,24 +549,23 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      // TODO: Lazy load KPAGE when VM is set.
 #ifdef VM
-      uint8_t *kpage = frametab_get_frame (PAL_USER, upage);
+      /* Lazily load a page from a file system. */
+      if (!pagetab_install_file_page (thread_current ()->pagetab, upage,
+                                      file, ofs,
+                                      page_read_bytes, page_zero_bytes,
+                                      writable))
+        return false;
 #else
       /* Get a page of memory. */
       uint8_t *kpage = palloc_get_page (PAL_USER);
-#endif
       if (kpage == NULL)
         return false;
 
       /* Load this page. */
       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
         {
-#ifdef VM
-          frametab_free_frame (kpage);
-#else
           palloc_free_page (kpage);
-#endif
           return false;
         }
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
@@ -568,18 +573,20 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Add the page to the process's address space. */
       if (!install_page (upage, kpage, writable))
         {
-#ifdef VM
-          frametab_free_frame (kpage);
-#else
           palloc_free_page (kpage);
-#endif
           return false;
         }
+#endif
 
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
       upage += PGSIZE;
+#ifdef VM
+      /* On virtual memory system, each page is loaded separatly.
+         Thus, the location of cursor need to be passed accordingly. */
+      ofs += PGSIZE;
+#endif
     }
   return true;
 }
@@ -589,26 +596,34 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp)
 {
+  uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
   uint8_t *kpage;
   bool success = false;
 
 #ifdef VM
-  kpage = frametab_get_frame (PAL_USER | PAL_ZERO, PHYS_BASE - PGSIZE);
-#else
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-#endif
+  kpage = frametab_get_frame (PAL_USER | PAL_ZERO, upage);
   if (kpage != NULL)
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      struct thread *cur = thread_current ();
+
+      success = pagetab_set_page (cur->pagedir, cur->pagetab,
+                                  upage, kpage, true);
       if (success)
         *esp = PHYS_BASE;
       else
-#ifdef VM
         frametab_free_frame (kpage);
-#else
-        palloc_free_page (kpage);
-#endif
     }
+#else
+  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  if (kpage != NULL)
+    {
+      success = install_page (upage, kpage, true);
+      if (success)
+        *esp = PHYS_BASE;
+      else
+        palloc_free_page (kpage);
+    }
+#endif
   return success;
 }
 
