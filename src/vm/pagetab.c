@@ -7,6 +7,14 @@ struct pagetab
     struct hash pages;
   };
 
+/* A supplemental page table entry. */
+struct page
+  {
+    void *upage;                /* A user page, which points to KPAGE. */
+    void *kpage;                /* A kernel page, which equals to frame. */
+    struct hash_elem elem;      /* Hash element. */
+  };
+
 static bool less_func (const struct hash_elem *a,
                        const struct hash_elem *b,
                        void *aux UNUSED);
