@@ -1,5 +1,6 @@
 #include "vm/pagetab.h"
 #include <hash.h>
+#include "threads/malloc.h"
 
 /* A supplemental page table. */
 struct pagetab
@@ -19,6 +20,19 @@ static bool less_func (const struct hash_elem *a,
                        const struct hash_elem *b,
                        void *aux UNUSED);
 static unsigned hash_func (const struct hash_elem *e, void *aux UNUSED);
+
+/* Create a new supplemental page table that each entry has an additional
+   information along with the mapping between user virtual page and
+   kernel virtual page. Return the new supplemental page table. */
+struct pagetab *
+pagetab_create (void)
+{
+  struct pagetab *pagetab = malloc (sizeof *pagetab);
+
+  hash_init (&pagetab->pages, hash_func, less_func, NULL);
+
+  return pagetab;
+}
 
 /* Compares the value of two list elements A and B, given
    auxiliary data AUX.  Returns true if A is less than B, or
