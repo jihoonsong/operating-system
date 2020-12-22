@@ -1,5 +1,6 @@
 #include "vm/pagetab.h"
 #include <hash.h>
+#include <string.h>
 #include "threads/malloc.h"
 #include "userprog/pagedir.h"
 
@@ -36,6 +37,10 @@ struct page
   };
 
 static struct page *pagetab_find_page (struct pagetab *pagetab, void *upage);
+static bool pagetab_load_file_page (struct file *file, off_t ofs,
+                                    uint32_t read_bytes, uint32_t zero_bytes,
+                                    void *frame);
+static bool pagetab_load_zero_page (void *frame);
 static bool less_func (const struct hash_elem *a,
                        const struct hash_elem *b,
                        void *aux UNUSED);
@@ -156,6 +161,40 @@ pagetab_find_page (struct pagetab *pagetab, void *upage)
     return NULL;
 
   return hash_entry (elem, struct page, elem);
+}
+
+/* Read READ_BYTES from FILE into the FRAME. This function is called when
+   fetching the data of file page into the FRAME. */
+static bool
+pagetab_load_file_page (struct file *file, off_t ofs,
+                        uint32_t read_bytes, uint32_t zero_bytes,
+                        void *frame)
+{
+  /* The sum of READ_BYTES and ZERO_BYTES should equals to PGSIZE. */
+  if (read_bytes + zero_bytes != PGSIZE)
+    return false;
+
+  /* Place cursor at the file. */
+  file_seek (file, ofs);
+
+  /* Read the data from the file to frame. */
+  if ((uint32_t) file_read (file, frame, read_bytes) != read_bytes)
+    return false;
+
+  /* Zero the remaining memory in frame. */
+  memset (frame + read_bytes, 0, zero_bytes);
+
+  return true;
+}
+
+/* Zero the FRAME. This function is called when fetching the data of
+   zero page into the FRAME. */
+static bool
+pagetab_load_zero_page (void *frame)
+{
+  memset (frame, 0, PGSIZE);
+
+  return true;
 }
 
 /* Compares the value of two list elements A and B, given
