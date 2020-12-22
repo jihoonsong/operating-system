@@ -164,7 +164,22 @@ page_fault (struct intr_frame *f)
   struct thread *cur = thread_current ();
   void *fault_page = pg_round_down (fault_addr);
 
-  // TODO: Stack growth here.
+  /* If page fault occured in kernel mode, ESP of F is an undefined value.
+     Thus, in kernel mode, we use ESP that we stored on the initial transition
+     from user to kernel mode. */
+  void *esp = user ? f->esp : cur->esp;
+
+  /* Allow the stack grows past its current size until it reaches its limit
+     by allocating additional zero pages. */
+  bool is_stack_access = (esp == fault_addr) ||      /* On the edge of stack. */
+                         (esp - 4 == fault_addr) ||  /* 80x86 PUSH. */
+                         (esp - 32 == fault_addr);   /* 80x86 PUSHA. */
+  if (is_stack_access && is_stack_vaddr (fault_addr))
+    {
+      /* Stack growth. */
+      if (!pagetab_install_zero_page (cur->pagetab, fault_page, true))
+        goto invalid_access;
+    }
 
   if (!pagetab_load_page (cur->pagedir, cur->pagetab, fault_page))
     goto invalid_access;

@@ -130,6 +130,7 @@ struct thread
 
 #ifdef VM
     struct pagetab *pagetab;            /* Supplemental page table. */
+    void *esp;                          /* Saved stack pointer. */
 #endif
 
     /* Owned by thread.c. */

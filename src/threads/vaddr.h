@@ -20,6 +20,10 @@
 #define PGSIZE  (1 << PGBITS)              /* Bytes in a page. */
 #define PGMASK  BITMASK(PGSHIFT, PGBITS)   /* Page offset bits (0:12). */
 
+#ifdef VM
+#define STACK_SIZE_MAX (1 << 23)           /* The maximum stack size. 8 MB. */
+#endif
+
 /* Offset within a page. */
 static inline unsigned pg_ofs (const void *va) {
   return (uintptr_t) va & PGMASK;
@@ -65,6 +69,15 @@ is_kernel_vaddr (const void *vaddr)
 {
   return vaddr >= PHYS_BASE;
 }
+
+#ifdef VM
+/* Returns true if VADDR is a stack virtual address. */
+static inline bool
+is_stack_vaddr (const void *vaddr)
+{
+  return vaddr >= PHYS_BASE - STACK_SIZE_MAX && vaddr < PHYS_BASE;
+}
+#endif
 
 /* Returns kernel virtual address at which physical address PADDR
    is mapped. */

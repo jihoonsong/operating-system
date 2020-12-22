@@ -46,9 +46,16 @@ syscall_init (void)
 }
 
 static void
-syscall_handler (struct intr_frame *f UNUSED)
+syscall_handler (struct intr_frame *f)
 {
   ASSERT (f != NULL);
+
+#ifdef VM
+  /* When page fault occured in kernel mode, ESP of the STRUCT INTR_FRAME
+     that passed to PAGE_FAULT () is an undefined value. To get around that,
+     we store ESP on the initial transition from user to kernel mode. */
+  thread_current ()->esp = f->esp;
+#endif
 
   int syscall_num = *(int *) validate_ptr (f->esp);
   switch (syscall_num)
