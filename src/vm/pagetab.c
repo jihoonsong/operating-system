@@ -25,6 +25,13 @@ struct page
     void *kpage;                  /* A kernel page, which equals to frame. */
     bool writable;                /* True if writable, false otherwise. */
     enum page_install_flag flag;  /* Page installation flag. */
+
+    /* If page will be lazily loaded from file system. */
+    struct file *file;            /* A file to read. */
+    off_t ofs;                    /* An offset. */
+    uint32_t read_bytes;          /* The number of bytes to read. */
+    uint32_t zero_bytes;          /* The number of bytes to zero. */
+
     struct hash_elem elem;        /* Hash element. */
   };
 
