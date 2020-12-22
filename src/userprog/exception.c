@@ -4,6 +4,10 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#ifdef VM
+#include "threads/vaddr.h"
+#include "vm/pagetab.h"
+#endif
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -147,6 +151,28 @@ page_fault (struct intr_frame *f)
   not_present = (f->error_code & PF_P) == 0;
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
+
+#ifdef VM
+  /* An attempt to write on read-only page is an invalid access. */
+  if (!not_present)
+    goto invalid_access;
+
+  /* A user process should not access kernel virtual memory. */
+  if (user && is_kernel_vaddr (fault_addr))
+    goto invalid_access;
+
+  struct thread *cur = thread_current ();
+  void *fault_page = pg_round_down (fault_addr);
+
+  // TODO: Stack growth here.
+
+  if (!pagetab_load_page (cur->pagedir, cur->pagetab, fault_page))
+    goto invalid_access;
+
+  return;
+
+invalid_access:
+#endif
 
   /* A page fault in the kernel merely sets EAX to 0xFFFFFFFF and
      copies its former value into EIP.
