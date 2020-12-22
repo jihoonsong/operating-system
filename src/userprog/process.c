@@ -595,26 +595,34 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp)
 {
+  uint8_t *upage = ((uint8_t *) PHYS_BASE) - PGSIZE;
   uint8_t *kpage;
   bool success = false;
 
 #ifdef VM
-  kpage = frametab_get_frame (PAL_USER | PAL_ZERO, PHYS_BASE - PGSIZE);
-#else
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-#endif
+  kpage = frametab_get_frame (PAL_USER | PAL_ZERO, upage);
   if (kpage != NULL)
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      struct thread *cur = thread_current ();
+
+      success = pagetab_set_page (cur->pagedir, cur->pagetab,
+                                  upage, kpage, true);
       if (success)
         *esp = PHYS_BASE;
       else
-#ifdef VM
         frametab_free_frame (kpage);
-#else
-        palloc_free_page (kpage);
-#endif
     }
+#else
+  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  if (kpage != NULL)
+    {
+      success = install_page (upage, kpage, true);
+      if (success)
+        *esp = PHYS_BASE;
+      else
+        palloc_free_page (kpage);
+    }
+#endif
   return success;
 }
 
