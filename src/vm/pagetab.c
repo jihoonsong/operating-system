@@ -135,6 +135,15 @@ pagetab_set_page (uint32_t *pagedir, struct pagetab *pagetab,
           && pagedir_set_page (pagedir, upage, kpage, writable));
 }
 
+/* Locate the page that faulted in a supplemental page table,
+   obtain a frame to store the page, fetch the data into the frame,
+   and update a supplemental page table entry point to the physical page. */
+bool
+pagetab_load_page (uint32_t *pagedir, struct pagetab *pagetab,
+                   void *upage)
+{
+}
+
 /* Find and return a supplement page table entry that has user virtual page
    equals to UPAGE. Return NULL if cannot find such entry. */
 static struct page *
