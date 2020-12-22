@@ -122,17 +122,27 @@ bool
 pagetab_set_page (uint32_t *pagedir, struct pagetab *pagetab,
                   void *upage, void *kpage, bool writable)
 {
-  /* Construct a new supplemental page table entry. */
-  struct page *page = malloc (sizeof *page);
+  /* If a supplemental page table doesn't have an entry of UPAGE,
+     then construct and insert a new entry to a supplemental page table.
+     Otherwise, it is lazy loading or swap-in, so just update its mapping. */
+  struct page *page = pagetab_find_page (pagetab, upage);
+  if (page == NULL)
+    {
+      /* Construct a new supplemental page table entry. */
+      page = malloc (sizeof *page);
+      page->upage = upage;
 
-  page->upage = upage;
+      /* Insert a new entry to a supplemental page table. */
+      hash_insert (&pagetab->pages, &page->elem);
+    }
+
+  /* Update a supplemental page table entry's mapping. */
   page->kpage = kpage;
   page->writable = writable;
   page->flag = PAGE_PRESENT;
 
-  /* Insert the new entry to a supplemental page table. */
-  if (hash_insert (&pagetab->pages, &page->elem) != NULL)
-    return false;
+  /* Clear dirty bit. */
+  pagedir_set_dirty (pagedir, kpage, false);
 
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
