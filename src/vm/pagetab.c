@@ -35,6 +35,7 @@ struct page
     struct hash_elem elem;        /* Hash element. */
   };
 
+static struct page *pagetab_find_page (struct pagetab *pagetab, void *upage);
 static bool less_func (const struct hash_elem *a,
                        const struct hash_elem *b,
                        void *aux UNUSED);
@@ -132,6 +133,20 @@ pagetab_set_page (uint32_t *pagedir, struct pagetab *pagetab,
      address, then map our page there. */
   return (pagedir_get_page (pagedir, upage) == NULL
           && pagedir_set_page (pagedir, upage, kpage, writable));
+}
+
+/* Find and return a supplement page table entry that has user virtual page
+   equals to UPAGE. Return NULL if cannot find such entry. */
+static struct page *
+pagetab_find_page (struct pagetab *pagetab, void *upage)
+{
+  struct page page = (struct page) {.upage = upage};
+
+  struct hash_elem *elem = hash_find (&pagetab->pages, &page.elem);
+  if (elem == NULL)
+    return NULL;
+
+  return hash_entry (elem, struct page, elem);
 }
 
 /* Compares the value of two list elements A and B, given
