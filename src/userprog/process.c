@@ -19,6 +19,7 @@
 #include "threads/vaddr.h"
 #ifdef VM
 #include "vm/frametab.h"
+#include "vm/pagetab.h"
 #endif
 
 static thread_func start_process NO_RETURN;
@@ -359,6 +360,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (t->pagedir == NULL)
     goto done;
   process_activate ();
+
+#ifdef VM
+  /* Allocate supplemental page table. */
+  t->pagetab = pagetab_create ();
+#endif
 
   /* Open executable file. */
   file = filesys_open (file_name);
