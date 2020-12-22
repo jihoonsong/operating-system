@@ -53,6 +53,34 @@ pagetab_create (void)
   return pagetab;
 }
 
+/* Install a new page in a supplemental page table that will be lazily
+   loaded from file system. */
+bool
+pagetab_install_file_page (struct pagetab *pagetab, void *upage,
+                           struct file *file, off_t ofs,
+                           uint32_t read_bytes, uint32_t zero_bytes,
+                           bool writable)
+{
+  /* Construct a new supplemental page table entry. */
+  struct page *page = malloc (sizeof *page);
+
+  page->upage = upage;
+  page->kpage = NULL;
+  page->writable = writable;
+  page->flag = PAGE_FILE;
+
+  page->file = file;
+  page->ofs = ofs;
+  page->read_bytes = read_bytes;
+  page->zero_bytes = zero_bytes;
+
+  /* Insert the new entry to a supplemental page table. */
+  if (hash_insert (&pagetab->pages, &page->elem) != NULL)
+    return false;
+
+  return true;
+}
+
 /* Add a mapping in page directory PAGEDIR from user virtual page
    UPAGE to the physical frame identified by kernel virtual address KPAGE
    and add to a supplemental page table entry with additional information.
