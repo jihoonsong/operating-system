@@ -1,6 +1,7 @@
 #include "vm/pagetab.h"
 #include <hash.h>
 #include "threads/malloc.h"
+#include "userprog/pagedir.h"
 
 /* How to install pages. */
 enum page_install_flag
@@ -43,6 +44,38 @@ pagetab_create (void)
   hash_init (&pagetab->pages, hash_func, less_func, NULL);
 
   return pagetab;
+}
+
+/* Add a mapping in page directory PAGEDIR from user virtual page
+   UPAGE to the physical frame identified by kernel virtual address KPAGE
+   and add to a supplemental page table entry with additional information.
+   UPAGE must not already be mapped.
+   KPAGE should probably be a page obtained from the user pool
+   with palloc_get_page().
+   If WRITABLE is true, the new page is read/write;
+   otherwise it is read-only.
+   Returns true if successful, false if memory allocation
+   failed. */
+bool
+pagetab_set_page (uint32_t *pagedir, struct pagetab *pagetab,
+                  void *upage, void *kpage, bool writable)
+{
+  /* Construct a new supplemental page table entry. */
+  struct page *page = malloc (sizeof *page);
+
+  page->upage = upage;
+  page->kpage = kpage;
+  page->writable = writable;
+  page->flag = PAGE_PRESENT;
+
+  /* Insert the new entry to a supplemental page table. */
+  if (hash_insert (&pagetab->pages, &page->elem) != NULL)
+    return false;
+
+  /* Verify that there's not already a page at that virtual
+     address, then map our page there. */
+  return (pagedir_get_page (pagedir, upage) == NULL
+          && pagedir_set_page (pagedir, upage, kpage, writable));
 }
 
 /* Compares the value of two list elements A and B, given
