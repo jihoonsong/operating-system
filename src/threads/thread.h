@@ -128,6 +128,10 @@ struct thread
     struct process *pcb;                /* A process control block. */
 #endif
 
+#ifdef VM
+    struct pagetab *pagetab;            /* Supplemental page table. */
+#endif
+
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
