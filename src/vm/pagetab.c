@@ -5,6 +5,7 @@
 #include "threads/vaddr.h"
 #include "userprog/pagedir.h"
 #include "vm/frametab.h"
+#include "vm/swaptab.h"
 
 /* How to install pages. */
 enum page_install_flag
@@ -45,6 +46,7 @@ static struct page *pagetab_find_page (struct pagetab *pagetab, void *upage);
 static bool pagetab_load_file_page (struct file *file, off_t ofs,
                                     uint32_t read_bytes, uint32_t zero_bytes,
                                     void *frame);
+static bool pagetab_load_swap_page (size_t swap_slot, void *frame);
 static bool pagetab_load_zero_page (void *frame);
 static bool less_func (const struct hash_elem *a,
                        const struct hash_elem *b,
@@ -206,7 +208,11 @@ pagetab_load_page (uint32_t *pagedir, struct pagetab *pagetab,
           }
         break;
       case PAGE_SWAP:
-        // TODO: Swap-in.
+        if (!pagetab_load_swap_page (fault_page->swap_slot, frame))
+          {
+            frametab_free_frame (frame);
+            return false;
+          }
         break;
       case PAGE_ZERO:
         if (!pagetab_load_zero_page (frame))
@@ -266,6 +272,14 @@ pagetab_load_file_page (struct file *file, off_t ofs,
   memset (frame + read_bytes, 0, zero_bytes);
 
   return true;
+}
+
+/* Swap-in a page from SWAP_SLOT to FRAME. This function is called when
+   fetching the data of swap page into the FRAME. */
+static bool
+pagetab_load_swap_page (size_t swap_slot, void *frame)
+{
+  return swaptab_swap_in (swap_slot, frame);
 }
 
 /* Zero the FRAME. This function is called when fetching the data of
