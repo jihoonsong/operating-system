@@ -35,6 +35,9 @@ struct page
     uint32_t read_bytes;          /* The number of bytes to read. */
     uint32_t zero_bytes;          /* The number of bytes to zero. */
 
+    /* If page will be lazily loaded from swap disk. */
+    size_t swap_slot;             /* An index of swap slot to swap-in. */
+
     struct hash_elem elem;        /* Hash element. */
   };
 
@@ -85,6 +88,25 @@ pagetab_install_file_page (struct pagetab *pagetab, void *upage,
   /* Insert the new entry to a supplemental page table. */
   if (hash_insert (&pagetab->pages, &page->elem) != NULL)
     return false;
+
+  return true;
+}
+
+/* Mark a page in a supplemental page table as swapped-out so that it can
+   be loaded from swap disk. */
+bool pagetab_install_swap_page (struct pagetab *pagetab, void *upage,
+                                size_t swap_slot)
+{
+  /* Find a page that has been swapped-out. */
+  struct page *page = pagetab_find_page (pagetab, upage);
+  if (page == NULL)
+    return false;
+
+  page->kpage = NULL;
+  page->flag = PAGE_SWAP;
+
+  /* Indicate where it has been swapped-out to. */
+  page->swap_slot = swap_slot;
 
   return true;
 }
