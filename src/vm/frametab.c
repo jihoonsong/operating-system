@@ -27,6 +27,7 @@ static struct lock get_frame_lock;
 static struct lock free_frame_lock;
 
 static struct frame *frametab_select_victim (void);
+static struct frame *frametab_find_frame (void *kpage);
 
 /* Initialize the frame table and the frame lock. */
 void
@@ -151,4 +152,20 @@ frametab_select_victim (void)
   clock_hand = list_next (&victim->elem);
 
   return victim;
+}
+
+/* Find and return a frame that has kernel virtual page
+   equals to KPAGE. Return NULL if cannot find such frame. */
+static struct frame *
+frametab_find_frame (void *kpage)
+{
+  for (struct list_elem *e = list_begin (&frametab);
+       e != list_end (&frametab); e = list_next (e))
+    {
+      struct frame *frame = list_entry (e, struct frame, elem);
+      if (frame->kpage == kpage)
+        return frame;
+    }
+
+  return NULL;
 }
