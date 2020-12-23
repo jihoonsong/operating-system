@@ -19,12 +19,14 @@ struct frame
     struct thread *thread;      /* A frame owner thread. */
     void *upage;                /* A user page, which points to KPAGE. */
     void *kpage;                /* A kernel page, which equals to frame. */
+    bool pinned;                /* True if pinned, false otherwise. */
     struct list_elem elem;      /* List element. */
   };
 
 /* A frame locks. */
 static struct lock get_frame_lock;
 static struct lock free_frame_lock;
+static struct lock pin_frame_lock;
 
 static struct frame *frametab_select_victim (void);
 static struct frame *frametab_find_frame (void *kpage);
@@ -36,6 +38,7 @@ frametab_init (void)
   list_init (&frametab);
   lock_init (&get_frame_lock);
   lock_init (&free_frame_lock);
+  lock_init (&pin_frame_lock);
 }
 
 /* Allocate a new frame and return its kernel virtual address.
@@ -81,6 +84,7 @@ frametab_get_frame (enum palloc_flags flags, void *upage)
   frame->thread = thread_current ();
   frame->upage = upage;
   frame->kpage = kpage;
+  frame->pinned = false;
 
   /* Add a new frame table entry to the frame table. */
   list_push_back (&frametab, &frame->elem);
@@ -112,7 +116,37 @@ frametab_free_frame (void *kpage)
   /* Free KPAGE. */
   palloc_free_page (kpage);
 
-  lock_release (&free_frame_lock);
+  lock_release (&frame_lock);
+}
+
+/* Pin frame to prevent swap-out. */
+void
+frametab_pin_frame (void *kpage)
+{
+  lock_acquire (&frame_lock);
+
+  struct frame *frame = frametab_find_frame (kpage);
+  if (frame == NULL)
+    return;
+
+  frame->pinned = true;
+
+  lock_release (&frame_lock);
+}
+
+/* Unpin frame to allow swap-out. */
+void
+frametab_unpin_frame (void *kpage)
+{
+  lock_acquire (&frame_lock);
+
+  struct frame *frame = frametab_find_frame (kpage);
+  if (frame == NULL)
+    return;
+
+  frame->pinned = false;
+
+  lock_release (&frame_lock);
 }
 
 /* Select a frame to evict using the clock algorithm. */
