@@ -109,6 +109,7 @@ frametab_free_frame (void *kpage)
       if (frame->kpage == kpage)
         {
           list_remove (&frame->elem);
+          free (frame);
           break;
         }
     }
