@@ -6,6 +6,8 @@
 #include "threads/synch.h"
 #include "threads/thread.h"
 #include "userprog/pagedir.h"
+#include "vm/pagetab.h"
+#include "vm/swaptab.h"
 
 /* A frame table. Frames are inserted in FIFO manner
    for the clock page replacement algorithm. */
@@ -46,10 +48,28 @@ frametab_get_frame (enum palloc_flags flags, void *upage)
 
   /* Allocate a new frame. */
   void *kpage = palloc_get_page (PAL_USER | flags);
-  if (kpage == NULL)
+  while (kpage == NULL)
     {
-      // TODO: Swapping have to occur.
-      PANIC ("frametab_get_frame: out of frametab");
+      /* Select a frame to swap-out. */
+      struct frame *victim = frametab_select_victim ();
+
+      /* Swap-out the selected frame. */
+      size_t swap_slot = swaptab_swap_out (victim->kpage);
+
+      /* Mark that it has been swapped-out. */
+      pagetab_install_swap_page (victim->thread->pagetab, victim->upage,
+                                 swap_slot);
+
+      /* Clear its mapping. */
+      pagedir_clear_page (victim->thread->pagedir, victim->upage);
+
+      /* Release its memory. */
+      list_remove (&victim->elem);
+      palloc_free_page (victim->kpage);
+      free (victim);
+
+      /* Try to allocate a new frame. */
+      kpage = palloc_get_page (PAL_USER | flags);
     }
 
   /* Construct a new frame table entry. */
@@ -105,18 +125,26 @@ frametab_select_victim (void)
 
   /* Select a frame to evict. */
   struct frame *victim = NULL;
-  for (size_t i = 0; i < (list_size (&frametab) << 1); ++i)
+  for (size_t i = 0; i <= (list_size (&frametab) << 1); ++i)
   {
+    /* Nominate the frame pointed by clock hand as a candidate for a victim */
     victim = list_entry (clock_hand, struct frame, elem);
 
-    if (!pagedir_is_accessed (victim->thread->pagedir, victim->upage))
-      break;
-
-    pagedir_set_accessed (victim->thread->pagedir, victim->upage, false);
-
+    /* Move clock hand. */
     clock_hand = list_next (clock_hand);
     if (clock_hand == list_end (&frametab))
       clock_hand = list_begin (&frametab);
+
+    /* Do not swap-out pinned frame. */
+    if (victim->pinned)
+      continue;
+
+    /* If the candidate has an accessed bit 0, then select it as a victim. */
+    if (!pagedir_is_accessed (victim->thread->pagedir, victim->upage))
+      break;
+
+    /* If not, clear its accessed bit. */
+    pagedir_set_accessed (victim->thread->pagedir, victim->upage, false);
   }
 
   /* Update clock hand. */
