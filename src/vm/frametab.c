@@ -5,6 +5,7 @@
 #include "threads/palloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "userprog/pagedir.h"
 
 /* A frame table. Frames are inserted in FIFO manner
    for the clock page replacement algorithm. */
@@ -22,6 +23,8 @@ struct frame
 /* A frame locks. */
 static struct lock get_frame_lock;
 static struct lock free_frame_lock;
+
+static struct frame *frametab_select_victim (void);
 
 /* Initialize the frame table and the frame lock. */
 void
@@ -89,4 +92,35 @@ frametab_free_frame (void *kpage)
   palloc_free_page (kpage);
 
   lock_release (&free_frame_lock);
+}
+
+/* Select a frame to evict using the clock algorithm. */
+static struct frame *
+frametab_select_victim (void)
+{
+  /* Clock hand points to the next element to the victim. */
+  static struct list_elem *clock_hand = NULL;
+  if (clock_hand == NULL)
+    clock_hand = list_begin (&frametab);
+
+  /* Select a frame to evict. */
+  struct frame *victim = NULL;
+  for (size_t i = 0; i < (list_size (&frametab) << 1); ++i)
+  {
+    victim = list_entry (clock_hand, struct frame, elem);
+
+    if (!pagedir_is_accessed (victim->thread->pagedir, victim->upage))
+      break;
+
+    pagedir_set_accessed (victim->thread->pagedir, victim->upage, false);
+
+    clock_hand = list_next (clock_hand);
+    if (clock_hand == list_end (&frametab))
+      clock_hand = list_begin (&frametab);
+  }
+
+  /* Update clock hand. */
+  clock_hand = list_next (&victim->elem);
+
+  return victim;
 }
