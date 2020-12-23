@@ -177,8 +177,8 @@ page_fault (struct intr_frame *f)
   if (is_stack_access && is_stack_vaddr (fault_addr))
     {
       /* Stack growth. */
-      if (!pagetab_install_zero_page (cur->pagetab, fault_page, true))
-        goto invalid_access;
+      if (!pagetab_is_page_exist (cur->pagetab, fault_page))
+        pagetab_install_zero_page (cur->pagetab, fault_page, true);
     }
 
   if (!pagetab_load_page (cur->pagedir, cur->pagetab, fault_page))
