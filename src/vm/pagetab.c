@@ -236,6 +236,13 @@ pagetab_load_page (uint32_t *pagedir, struct pagetab *pagetab,
   return true;
 }
 
+/* Return true if UPAGE is exist, false otherwise. */
+bool
+pagetab_is_page_exist (struct pagetab *pagetab, void *upage)
+{
+  return pagetab_find_page (pagetab, upage) != NULL;
+}
+
 /* Pin kernel virtual page that is mapped with UPAGE to prevent swap-out. */
 void
 pagetab_pin_page (struct pagetab *pagetab, void *upage)
