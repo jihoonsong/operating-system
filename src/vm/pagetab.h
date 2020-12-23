@@ -18,5 +18,7 @@ bool pagetab_set_page (uint32_t *pagedir, struct pagetab *pagetab,
                        void *upage, void *kpage, bool writable);
 bool pagetab_load_page (uint32_t *pagedir, struct pagetab *pagetab,
                         void *upage);
+void pagetab_pin_page (struct pagetab *pagetab, void *upage);
+void pagetab_unpin_page (struct pagetab *pagetab, void *upage);
 
 #endif /* vm/pagetab.h */

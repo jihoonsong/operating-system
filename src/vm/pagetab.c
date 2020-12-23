@@ -236,6 +236,28 @@ pagetab_load_page (uint32_t *pagedir, struct pagetab *pagetab,
   return true;
 }
 
+/* Pin kernel virtual page that is mapped with UPAGE to prevent swap-out. */
+void
+pagetab_pin_page (struct pagetab *pagetab, void *upage)
+{
+  struct page *page = pagetab_find_page (pagetab, upage);
+  if (page == NULL)
+    return;
+
+  frametab_pin_frame (page->kpage);
+}
+
+/* Unpin kernel virtual page that is mapped with UPAGE to allow swap-out. */
+void
+pagetab_unpin_page (struct pagetab *pagetab, void *upage)
+{
+  struct page *page = pagetab_find_page (pagetab, upage);
+  if (page == NULL)
+    return;
+
+  frametab_unpin_frame (page->kpage);
+}
+
 /* Find and return a supplement page table entry that has user virtual page
    equals to UPAGE. Return NULL if cannot find such entry. */
 static struct page *
