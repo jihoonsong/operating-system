@@ -48,6 +48,8 @@ static bool pagetab_load_file_page (struct file *file, off_t ofs,
                                     void *frame);
 static bool pagetab_load_swap_page (size_t swap_slot, void *frame);
 static bool pagetab_load_zero_page (void *frame);
+
+static void destroy_func (struct hash_elem *elem, void *aux UNUSED);
 static bool less_func (const struct hash_elem *a,
                        const struct hash_elem *b,
                        void *aux UNUSED);
@@ -64,6 +66,15 @@ pagetab_create (void)
   hash_init (&pagetab->pages, hash_func, less_func, NULL);
 
   return pagetab;
+}
+
+/* Release memory at both user virtual address and kernel virtual address
+   and page table. */
+void
+pagetab_destroy (struct pagetab *pagetab)
+{
+  hash_destroy (&pagetab->pages, destroy_func);
+  free (pagetab);
 }
 
 /* Install a new page in a supplemental page table that will be lazily
@@ -223,7 +234,8 @@ pagetab_load_page (uint32_t *pagedir, struct pagetab *pagetab,
         break;
       default:
         /* Do nothing. */
-        break;
+        frametab_free_frame (frame);
+        return true;
     }
 
   /* Update a supplemental page table entry point to the physical page. */
@@ -319,6 +331,21 @@ pagetab_load_zero_page (void *frame)
   memset (frame, 0, PGSIZE);
 
   return true;
+}
+
+/* The contents of kernel virtual address resides in frame or swap disk. */
+static void
+destroy_func (struct hash_elem *elem, void *aux UNUSED)
+{
+  struct page *page = hash_entry (elem, struct page, elem);
+
+  if (page->kpage != NULL)
+    frametab_free_frame (page->kpage);
+
+  if (page->flag == PAGE_SWAP)
+    swaptab_free_slot (page->swap_slot);
+
+  free (page);
 }
 
 /* Compares the value of two list elements A and B, given

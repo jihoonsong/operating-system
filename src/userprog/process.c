@@ -238,6 +238,11 @@ process_exit (void)
   if (cur->pcb->orphan)
     palloc_free_page (cur->pcb);
 
+#ifdef VM
+  /* Destroy the current process's page table. */
+  pagetab_destroy (cur->pagetab);
+#endif
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;

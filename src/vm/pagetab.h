@@ -6,6 +6,7 @@
 #include "filesys/file.h"
 
 struct pagetab *pagetab_create (void);
+void pagetab_destroy (struct pagetab *pagetab);
 bool pagetab_install_file_page (struct pagetab *pagetab, void *upage,
                                 struct file *file, off_t ofs,
                                 uint32_t read_bytes, uint32_t zero_bytes,

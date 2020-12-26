@@ -69,3 +69,10 @@ swaptab_swap_in (size_t swap_slot, void *kpage)
 
   return true;
 }
+
+/* Mark the SWAP_SLOT as empty. */
+void
+swaptab_free_slot (size_t swap_slot)
+{
+  bitmap_set (swaptab.swap_slots, swap_slot, true);
+}
