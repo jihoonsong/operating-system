@@ -23,10 +23,8 @@ struct frame
     struct list_elem elem;      /* List element. */
   };
 
-/* A frame locks. */
-static struct lock get_frame_lock;
-static struct lock free_frame_lock;
-static struct lock pin_frame_lock;
+/* A frame lock. */
+static struct lock frame_lock;
 
 static struct frame *frametab_select_victim (void);
 static struct frame *frametab_find_frame (void *kpage);
@@ -36,9 +34,7 @@ void
 frametab_init (void)
 {
   list_init (&frametab);
-  lock_init (&get_frame_lock);
-  lock_init (&free_frame_lock);
-  lock_init (&pin_frame_lock);
+  lock_init (&frame_lock);
 }
 
 /* Allocate a new frame and return its kernel virtual address.
@@ -47,8 +43,7 @@ frametab_init (void)
 void *
 frametab_get_frame (enum palloc_flags flags, void *upage)
 {
-  if (!lock_held_by_current_thread (&get_frame_lock))
-    lock_acquire (&get_frame_lock);
+  lock_acquire (&frame_lock);
 
   /* Allocate a new frame. */
   void *kpage = palloc_get_page (PAL_USER | flags);
@@ -89,7 +84,7 @@ frametab_get_frame (enum palloc_flags flags, void *upage)
   /* Add a new frame table entry to the frame table. */
   list_push_back (&frametab, &frame->elem);
 
-  lock_release (&get_frame_lock);
+  lock_release (&frame_lock);
 
   return kpage;
 }
@@ -98,8 +93,7 @@ frametab_get_frame (enum palloc_flags flags, void *upage)
 void
 frametab_free_frame (void *kpage)
 {
-  if (!lock_held_by_current_thread (&free_frame_lock))
-    lock_acquire (&free_frame_lock);
+  lock_acquire (&frame_lock);
 
   /* Remove the frame at KPAGE from the frame table. */
   for (struct list_elem *e = list_begin (&frametab);
