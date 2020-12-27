@@ -373,6 +373,11 @@ read (int fd, void *buffer, unsigned int size)
       return size;
     }
 
+  /* Check if BUFFER is writable by writing an arbitrary byte 0. */
+  for (unsigned int i = 0; i < size; ++i)
+    if (!put_user (buffer_indirect + i, 0))
+      exit (-1);
+
   /* Find a file of FD. */
   struct file *file = find_file_by_fd (&thread_current ()->files, fd);
 
