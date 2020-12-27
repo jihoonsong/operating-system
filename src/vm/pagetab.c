@@ -232,10 +232,12 @@ pagetab_load_page (uint32_t *pagedir, struct pagetab *pagetab,
             return false;
           }
         break;
-      default:
+      case PAGE_PRESENT:
         /* Do nothing. */
-        frametab_free_frame (frame);
         return true;
+      default:
+        frametab_free_frame (frame);
+        return false;
     }
 
   /* Update a supplemental page table entry point to the physical page. */
